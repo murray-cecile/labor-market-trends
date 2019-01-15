@@ -1,0 +1,34 @@
+---
+title: "Data Visualization Portfolio Proposal"
+author: "Cecile Murray"
+date: "1/12/2019"
+output: pdf_document
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Ten years after the onset of the Great Recession, the national labor market is humming, with the official unemployment rate at 3.7 percent and wage growth slowly accelerating. However, the rosy national figures mask important variation in labor market trends across industries, occupations, demographic groups, and geographic areas. This variation should matter to policymakers who are concerned about the extent to which different sectors and groups have actually recovered, and the degree to which economic growth is broadly shared.
+
+I propose to examine how the recession impacted these different groups as well as the extent to which the recovery is proceeding (or not) by looking at the pattern of job losses and job gains during and after the recession. This exploration could include calculating how long it took each industry or occupational category to return to pre-recession employment levels, comparing unemployment and labor force participation trends by demographic group, and mapping the geographic distribution of the job and wage gains during the economic recovery. 
+
+I plan to use data primarily from the Bureau of Labor Statistics (BLS):
+
+* The [Current Employment Statistics](https://www.bls.gov/ces/)  (CES) dataset provides state- and metro-area-level data on employment by industry, time worked, and wages on a monthly basis. At the state level, there are 52 observations; at the metro area level, there are 444 observations. In addition, there are 345 industries organized into 22 supersectors.
+
+* For additional granularity by industry and geography, the [Quarterly Census of Employment and Wages](https://www.bls.gov/cew/) (QCEW) provides county-level data on employment and wages on an annual basis. At minimum, this would offer 3,141 rows of data (one for each U.S. county) and the same industry and supersector categories as in the CES, as well as categories for establishment size.
+
+* The [Current Population Survey](https://www.bls.gov/cps/) (CPS) offers demographic information, such as educational attainment, gender, and race, among the employed and unemployed populations. It also provides data on occupation, hours of work, and earnings.
+
+Taken together, these data include geospatial and time-series variation, as well as some variation data types (e.g. numeric counts of employed, text of common industries or occupations). In addition, they include hierarchies by geography and by industry, occupation, and labor market segment.
+
+For additional context, I may want to supplement with data from the Census Bureau or Bureau of Economic Analysis (BEA):
+
+* Census’ Longitudinal Employer Household Dynamics Origin-Destination Statistics (LEHD LODES) dataset provides geographically fine-grained data on employment, broken out along some broad industry and demographic categories. 
+
+* The American Community Survey (ACS) has a great deal of demographic information, as well as more local estimates of labor force participation.
+
+* The Bureau of Economic Analysis has data on output, which could be relevant for looking at industries (e.g. manufacturing) experiencing long-term changes in production, such as automation, that are not directly related to the business cycle. 
+

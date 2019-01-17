@@ -9,8 +9,8 @@
 # setup steps
 library(here)
 
-libs <- c("tidyverse", "magrittr", "stringr", "readr", "openxlsx", "janitor", "sp",
-          "tigris", "censusapi", "broom", "data.table", "foreign", "blscrapeR")
+libs <- c("tidyverse", "stringr", "readr", "openxlsx", "janitor", "sp",
+          "tigris", "censusapi", "broom", "data.table", "blscrapeR")
 lapply(libs, library, character.only=TRUE)
 
 blskey <- Sys.getenv("BLS_KEY")
@@ -29,3 +29,12 @@ ces_ids <- mutate(ces_ids_raw,
                   industry = substr(id, 11, 18))
 
 al <- filter(ces_ids, stfips == "01")
+
+test_pull <- bls_api(al$id, startyear = 2007, endyear = 2018, registrationKey = blskey)
+
+test_pull %<>% mutate(yr_mo = paste0(year, "-", substr(period, 2, 3)), 
+                      area = substr(seriesID, 9, 13))
+
+ggplot(filter(test_pull, area == "00050"),
+       aes(yr_mo, value, group = area)) +
+  geom_line()

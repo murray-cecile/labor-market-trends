@@ -6,19 +6,12 @@
 # 2019-01-16
 #===============================================================================#
 
-libs <- c("tidyverse", "magrittr", "stringr", "readr", "data.table", "janitor",
-          "blscrapeR", "here")
-  lapply(libs, library, character.only=TRUE)
-
-blskey <- Sys.getenv("BLS_KEY")
+library(here)
+source("scripts/setup.R")
 
 #===============================================================================#
 # CONSTRUCT SERIES IDS & PULL FROM API
 #===============================================================================#
-
-# pull list of all NAICS codes
-industries <- fread("https://download.bls.gov/pub/time.series/sm/sm.industry") %>% 
-  mutate(industry_code = str_pad(industry_code, 8, side = "left", pad = "0"))
 
 # construct series IDs to query
 naics2 <- filter(industries, substr(industry_code, 3, 8) == "000000") %>% 

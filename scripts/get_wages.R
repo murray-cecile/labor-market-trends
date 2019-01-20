@@ -61,8 +61,8 @@ earn_cats <- hrearn_data %>% filter(year == 2007 | year == 2018) %>%
   summarize(avgearn = mean(real_value)) %>% 
   spread(year, avgearn, sep = "_") %>% ungroup() %>% 
   mutate(earncat = case_when(
-    year_2018 < avgearn18$avgearn ~ "Below-average earning",
-    year_2018 > avgearn18$avgearn ~ "Above-average earning"
+    year_2018 < avgearn18$avgearn ~ "Low-earning",
+    year_2018 > avgearn18$avgearn ~ "High-earning"
   ))
 
 save(earn_cats, file = "temp/naics2_average_earnings_07.Rdata")

@@ -18,3 +18,17 @@ compare <- left_join(mf, durable, by = "year", suffix = c("mf", "db")) %>%
   mutate(jobsum = valuedb + value)
 rm(mf, durable, nondurable, compare)
 # CONCLUSION: DURABLE AND NON-DURABLES ARE SUBSECTORS OF MANUFACTURING  
+
+#===============================================================================#
+# BREAK NAME
+#===============================================================================#
+
+
+# ggplot(filter(stunemp_data, periodName == "Annual", year %in% c(2007, 2017)),
+#        aes(x = stfips, y = value, fill = region)) +
+#   geom_violin()
+# 
+# ggplot(filter(stunemp_data, year %in% c(2008, 2018)),
+#        aes(x = region, y = value, fill = region)) +
+#   geom_violin() +
+#   facet_grid(cols = vars(year))

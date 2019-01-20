@@ -7,7 +7,7 @@
 #===============================================================================#
 
 libs <- c("tidyverse", "magrittr", "stringr", "readr", "data.table", "janitor",
-          "blscrapeR", "here", "viridis")
+          "blscrapeR", "here", "ggrepel", "censusapi")
 lapply(libs, library, character.only=TRUE)
 
 blskey <- Sys.getenv("BLS_KEY")

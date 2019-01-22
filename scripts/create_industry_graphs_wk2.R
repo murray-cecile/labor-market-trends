@@ -118,38 +118,3 @@ ggplot(filter(industry_growth, !is.na(industry_code)),
   guides(fill = guide_legend(title = "Earnings Category")) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.ticks.x = element_blank(), legend.position = "bottom")
-
-#===============================================================================#
-# 
-#===============================================================================#
-
-# 
-# growth_share <- industry_shares %>% ungroup() %>% select(-year, -tot_nonfarm) %>% 
-#   gather(type, estimate, -month, -industry_name) %>% 
-#   mutate(key = paste0(month, "_", type)) %>% 
-#   spread(key, estimate) %>% clean_names() %>%
-#   mutate(delta = x2018_08 - x2007_08) %>% 
-#   left_join(earn_cats, by = "industry_name")
-# 
-# ggplot(filter(growth_share, !industry_name %in% c("Government", "Total nonfarm")),
-#        aes(x = reorder(industry_name, delta), y = delta * 100, fill = earncat)) +
-#   geom_col() +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-#         legend.position = "top") +
-#   labs(title = "The labor market has shifted toward lower-earning sectors",
-#        subtitle = "Change in share of total employment by industry and average hourly wage, 2007-2018",
-#        x = "Industry", y = "",
-#        caption = "Source: Bureau of Labor Statistics Current Employment Statistics") +
-#   guides(fill = guide_legend(title = NULL))
-# 
-# ggplot(filter(industry_shares, !industry_name %in% c("Government", "Total nonfarm")),
-#        aes(x = reorder(industry_name, delta), y = delta * 100, fill = earncat)) +
-#   geom_col() +
-#   labs(title = "The labor market has shifted toward lower-earning sectors",
-#        subtitle = "Change in share of total employment by industry and average hourly wage, 2007-2018",
-#        x = "Industry", y = "",
-#        caption = "Source: Bureau of Labor Statistics Current Employment Statistics") +
-#   guides(fill = guide_legend(title = NULL)) +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-#         axis.ticks.x = element_blank(), panel.background = element_rect(color = "gray"),
-#         legend.position = "top")

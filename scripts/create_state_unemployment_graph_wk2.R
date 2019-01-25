@@ -87,3 +87,7 @@ ggplot(filter(stdata, period == "M10", year %in% c(2009)),
        Note: Peak national unemployment occurred in October 2009.") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.ticks.x = element_blank(), legend.position = "top")
+# 
+# ggplot(filter(stdata, period == "M10", year %in% c(2009, 2018)),
+#        aes(x = lf, y = value, color = year)) +
+#   geom_point()

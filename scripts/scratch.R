@@ -32,3 +32,9 @@ rm(mf, durable, nondurable, compare)
 #        aes(x = region, y = value, fill = region)) +
 #   geom_violin() +
 #   facet_grid(cols = vars(year))
+
+#===============================================================================#
+# TEST NBERSHADE
+#===============================================================================#
+
+rshade <- nberDates() %>% mutate(Start = lubridate::ymd)

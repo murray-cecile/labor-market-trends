@@ -2,8 +2,14 @@
 title: "Visualizing Labor Market Trends"
 author: "Cecile Murray"
 date: "1/25/2019"
-output: html_document
+output: 
+  html_document:
+    code_folding: hide
 ---
+
+Ten years after the onset of the Great Recession, the national labor market is humming, with the official unemployment rate at 3.7 percent and wage growth slowly accelerating. However, the rosy national figures mask important variation in labor market trends across industries, occupations, demographic groups, and geographic areas. This variation should matter to policymakers who are concerned about the extent to which different sectors and groups have actually recovered, and the degree to which economic growth is broadly shared.
+
+These visualizations aim to examine how the recession impacted these different groups as well as the extent to which the recovery is proceeding (or not) by looking at the pattern of job losses and job gains during and after the recession. I use data from a few different U.S. Bureau of Labor Statistics surveys, made easily accessible thanks to the excellent ```blscrapeR``` package.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -14,6 +20,17 @@ lapply(libs, library, character.only=TRUE)
 
 blskey <- Sys.getenv("BLS_KEY")
 
+# rdates <- nberDates()
+start08 <-  ymd("20080101")
+end08 <- ymd("20090630")
+
+```
+
+#### How did the recession affect different industries?
+
+One of the immediate causes of the recession was a crash in the U.S. housing and financial sectors due to mass defaults on subprime home mortgages that had been collateralized and sold as "safe" assets. The economic pain soon spread well beyond these two industries, but there was substantial variation in how different industries experience the recession and how long they took to recover. The chart below illustrates that the construction sector was hit much harder than most, while education and health services continued to grow jobs even as the nation overall shed them. Meanwhile, mining and logging followed an entirely different trajectory - likely in response to the shale boom. 
+
+```{r industry_data_prep, include=FALSE, echo=FALSE}
 #===============================================================================#
 # SERIES ID DICTIONARIES
 #===============================================================================#
@@ -39,15 +56,6 @@ industry_list <- c("Mining and logging", "Construction", "Manufacturing",
                    "Leisure and hospitality", "Other services", "Government",
                    "Total nonfarm")
 
-# cut_labels <- function(labels, line_length = 13) {
-#   
-# }
-
-```
-
-
-Make the API call
-```{r}
 # construct series IDs to query
 naics2 <- filter(industries, industry_name %in% industry_list) %>% 
   mutate(seriesID = paste0("CE", "S", industry_code, "01"))
@@ -56,10 +64,7 @@ naics2_data <- bls_api(naics2$seriesID, startyear = 2007, endyear = 2018,
                        registrationKey = blskey, annualaverage = TRUE) %>% 
   mutate(month = paste0(year, "-", substr(period, 2, 3))) %>% 
   left_join(naics2, by = "seriesID")
-```
 
-Now do some data cleaning:
-```{r}
 selected <- c("Total nonfarm", "Mining and logging", "Education and health services", 
               "Construction")
 
@@ -75,7 +80,6 @@ index_naics2 <- filter(naics2_data, periodName != "Annual")  %>%
 
 ```
 
-Now make a chart:
 ```{r}
 industry_colors <- c("Education and health services" = "cyan3", 
                      "Mining and logging" = "orange",
@@ -88,6 +92,9 @@ industry_colors <- c("Education and health services" = "cyan3",
 # plot indexed employment in selected industries
 ggplot(index_naics2, aes(x = date, y = index_jobs * 100, group = industry_name,
                           color = selected_industry, alpha = selected)) +
+  geom_rect(aes(xmin = start08, xmax = end08,
+                ymin = 60, ymax = 130),
+            fill = "gray85", color = "gray85") +
   geom_path(size = 0.75) +
   scale_color_manual(values = industry_colors, name = "Industry") +
   scale_alpha(range = c(0.5, 1), guide = "none") +
@@ -98,13 +105,15 @@ ggplot(index_naics2, aes(x = date, y = index_jobs * 100, group = industry_name,
   labs(title = "Education and health services boomed while construction busted \n and mining and logging fluctuated",
        subtitle = "Employment by industry, indexed to January 2007",
        x = "Year", y = "Indexed employment (Jan. 2007 = 100)",
-       caption = "Source: Bureau of Labor Statistics Current Employment Statistics")
+       caption = "Source: Bureau of Labor Statistics Current Employment Statistics") 
 
 ```
 
+#### Which industries have grown the fastest since the recession?
 
-Now for another chart:
-```{r}
+It took [X] years for the economy to return to its pre-recession employment level. But I wanted to know whether the recession might have caused changes in the economy's composition; that is, what kind of jobs have we grown? The chart below shows that job growth was uneven across sectors. Worringly, employment in sectors where average hourly earnings are below the figure for all private jobs grew faster than employment in higher-earnings sectors. For example, the average wage in the fast-growing leisure and hospitality sector was \$X, compared with \$x in higher-paying but still-recovering construction sector. In fact, the only higher-earning industry that saw a larger percentage increase than the economy as a whole was professional services. 
+
+```{r earnings_emp_growth_prep, include = FALSE, echo = FALSE}
 # what were the biggest industries just before the recession?
 industry_shares <- naics2_data %>% filter(month %in% c("2007-08", "2018-08")) %>% 
   select(year, month, industry_name, value) %>% 
@@ -130,7 +139,9 @@ ann_text <- data.frame(industry_name = "Information", pct_change = nonfarm_growt
                        earncat = factor("High-earning",
                                         levels = c("High-earning", "Low-earning")))
 
+```
 
+```{r}
 # TO DO: get the x-axis labels to wrap; think about whether to encode industry size
 
 ggplot(filter(industry_growth, !is.na(industry_code)),
@@ -155,4 +166,6 @@ ggplot(filter(industry_growth, !is.na(industry_code)),
         axis.ticks.x = element_blank(), legend.position = "none")
 
 ```
+
+#### How did the recession affect longer-term labor market disparities?
 

@@ -69,6 +69,8 @@ stdata <- sturate_data %>% left_join(stunemp, by = c("year", "period", "stfips")
   mutate(value = value/100) %>% 
   left_join(state_fips, by = c("stfips" = "fips_state"))
 
+save.image("plot_data/state_unemployment_dot_plot.Rdata")
+
 
 ggplot(filter(stdata, period == "M10", year %in% c(2009)), 
        aes(x = reorder(state_abb, value), y = value)) +

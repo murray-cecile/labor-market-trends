@@ -1,7 +1,7 @@
 ---
 title: "Visualizing Labor Market Trends"
 author: "Cecile Murray"
-date: "1/25/2019"
+date: "1/27/2019"
 output: 
   html_document:
     code_folding: hide
@@ -197,3 +197,30 @@ ggplot(filter(industry_growth, !is.na(industry_code)),
 
 #### How did the recession affect longer-term labor market disparities?
 
+Economists sometimes categorize labor market trends as either cyclical or structural to denote whether fluctuations are primarily driven by the economic cycle or whether they reflect deeper changes in the labor market. Unfortunately, racial disparities in unemployment are both cyclical and structural, as the chart below illustrates. The unemployment rate among black Americans has been higher than the unemployment rate among white Americans for as long as the Current Population Survey has measured it (the white unemployment rate is available back to 1954, but the black unemployment rate is only available after 1971). That gap only widens during recessions. However, the current disparity is the smallest it has ever been.
+
+```{r}
+load("plot_data/black_white_unemployment_gap.Rdata")
+
+
+ggplot(raceth_unemp_yr, aes(x = year)) +
+  geom_errorbar(aes(ymin = white/100, ymax = black/100), color = "gray50", 
+                alpha = 0.75) +
+  geom_line(aes(y = (black - white)/100), color = "orange") +
+  scale_x_continuous(breaks = seq(1970, 2020, 5)) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Black unemployment has always been higher than white
+       unemployment, but the gap is smaller than ever",
+       subtitle = "Average annual unemployment rate by race, 1971-2018",
+       x = "Year", y = "Average annual unemployment rate",
+       caption = "Source: Bureau of Labor Statistics Current Population Survey") +
+  annotate(geom = "errorbar", x = 1988, ymin = 0.18, ymax = 0.195, 
+           color = "gray50") +
+  annotate(geom = "text", x = 1996, y = 0.195, label = "Black unemployment",
+           size = 3.5) +
+  annotate(geom = "text", x = 1996, y = 0.18, label = "White unemployment",
+           size = 3.5) +
+  annotate(geom = "line", x = c(2005, 2007), y = rep(0.1875, 2), color = "orange",
+           size = 1.25) +
+  annotate(geom = "text", x = 2013, y = 0.1875, label = "Black-white gap", size = 3.5)
+```

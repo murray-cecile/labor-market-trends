@@ -5,6 +5,8 @@ date: "1/27/2019"
 output: 
   html_document:
     code_folding: hide
+    fig.width: 8
+    fig.height: 11
 ---
 
 Ten years after the onset of the Great Recession, the national labor market is humming, with the official unemployment rate at 3.7 percent and wage growth slowly accelerating. However, the rosy national figures mask important variation in labor market trends across industries, occupations, demographic groups, and geographic areas. This variation should matter to policymakers who are concerned about the extent to which different sectors and groups have actually recovered, and the degree to which economic growth is broadly shared.
@@ -96,22 +98,22 @@ ggplot(index_naics2, aes(x = date, y = index_jobs * 100, group = industry_name,
                 ymin = 60, ymax = 130),
             fill = "gray85", color = "gray85") +
   geom_path(size = 0.75) +
-  scale_color_manual(values = industry_colors, name = "Industry") +
+  scale_color_manual(values = industry_colors, name = "") +
   scale_alpha(range = c(0.5, 1), guide = "none") +
   scale_x_date(date_breaks = "1 year", date_labels = "%Y",
                limits = c(min(index_naics2$date), max(index_naics2$date))) + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "none") +
+        legend.position = "right") +
   labs(title = "Education and health services boomed while construction busted \n and mining and logging fluctuated",
        subtitle = "Employment by industry, indexed to January 2007",
        x = "Year", y = "Indexed employment (Jan. 2007 = 100)",
-       caption = "Source: Bureau of Labor Statistics Current Employment Statistics") 
+       caption = "Source: Bureau of Labor Statistics Current Employment Statistics")
 
 ```
 
 #### How were different states affected?
 
-The chart below shows that the recession did not treat all states equally. Even when the national unemployment rate peaked at 10/% in October 2009, the Dakotas and Nebraska experienced unemployment rates between 3 and 5 percent, likely due to the shale boom. Meanwhile, states like Michigan, Nevada, Alabama, and California - all of which were hit hard by the foreclosure crisis - saw their unemployment rates hang near 12/%. 
+The chart below shows that the recession did not treat all states equally. Even when the national unemployment rate peaked at 10% in October 2009, the Dakotas and Nebraska experienced unemployment rates between 3 and 5 percent, likely due to the shale boom. Meanwhile, states like Michigan, Nevada, Alabama, and California - all of which were hit hard by the foreclosure crisis - saw their unemployment rates hang near 12%. 
 
 ```{r}
 
@@ -126,20 +128,20 @@ ggplot(filter(stdata, period == "M10", year %in% c(2009)),
                         name = "Labor Force Size") +
   scale_y_continuous(labels = scales::percent) +
   geom_hline(yintercept = 0.1, color = "gray50", linetype = "longdash" ) +
-  geom_text(aes(x = 7, y = .102, label = "National unemployment rate: 10%")) +
   labs(title = "States saw widely different unemployment rates in the depth of the recession",
        subtitle = "Unemployment rate and state labor force size (millions), October 2009",
        x = "State", y = "Unemployment Rate",
        caption = "Source: Bureau of Labor Statistics Current Population Survey.
        Note: Peak national unemployment occurred in October 2009.") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.ticks.x = element_blank(), legend.position = "top")
+        axis.ticks.x = element_blank(), legend.position = "top") +
+  annotate(geom = "text", x = 10, y = .105, label = "National unemployment rate: 10%", size = 3.5) 
 ```
 
 
 #### Which industries have grown the fastest since the recession?
 
-It took [X] years for the economy to return to its pre-recession employment level. But I wanted to know whether the recession might have caused changes in the economy's composition; that is, what kind of jobs have we grown? The chart below shows that job growth was uneven across sectors. Worringly, employment in sectors where average hourly earnings are below the figure for all private jobs grew faster than employment in higher-earnings sectors. For example, the average wage in the fast-growing leisure and hospitality sector was \$X, compared with \$x in higher-paying but still-recovering construction sector. In fact, the only higher-earning industry that saw a larger percentage increase than the economy as a whole was professional services. 
+It wasn't until April of 2014 that the economy returned to its pre-recession employment level. But I wanted to know whether the recession might have caused changes in the economy's composition; that is, what kind of jobs have we grown? The chart below shows that job growth was uneven across sectors. Worringly, employment in sectors where average hourly earnings are below the figure for all private jobs grew faster than employment in higher-earnings sectors. For example, average earnings in the fast-growing leisure and hospitality sector were \$16 per hour, compared with close to \$30 per hour in higher-paying but still-recovering construction sector. In fact, the only higher-earning industry that saw a larger percentage increase than the economy as a whole was professional services. 
 
 ```{r earnings_emp_growth_prep, include = FALSE, echo = FALSE}
 # what were the biggest industries just before the recession?
@@ -158,7 +160,15 @@ load("temp/naics2_average_earnings_07.Rdata")
 industry_growth <- industry_shares %>% select(month, industry_name, value) %>% 
   spread(month, value) %>% clean_names() %>% 
   mutate(pct_change = x2018_08 / x2007_08 - 1) %>% 
-  left_join(earn_cats, by = "industry_name")
+  left_join(earn_cats, by = "industry_name") %>% 
+  mutate(industry_name == case_when(
+    industry_name == 'Mining and logging' ~ "Mining & logging",
+    industry_name == "Transportation and Warehousing" ~ "Transportation & warehousing",
+    industry_name == "Financial activities" ~ "Financial activities",
+    industry_name == "Professional and business services" ~ "Professional & business services",
+    industry_name == "Education and health services" ~ "Education & health services",
+    industry_name == "Leisure and hospitality" ~ "Leisure & hospitality"
+    ))
 
 nonfarm_growth <- industry_growth$pct_change[industry_growth$industry_name=="Total nonfarm"]
 
@@ -170,7 +180,8 @@ ann_text <- data.frame(industry_name = "Information", pct_change = nonfarm_growt
 ```
 
 ```{r}
-# TO DO: get the x-axis labels to wrap; think about whether to encode industry size
+
+# TO DO: think about how to encode industry size
 
 ggplot(filter(industry_growth, !is.na(industry_code)),
        aes(x = reorder(industry_name, pct_change), y = pct_change,
@@ -180,11 +191,12 @@ ggplot(filter(industry_growth, !is.na(industry_code)),
   geom_text(aes(label = round(pct_change * 100, 1)), hjust = 0.5, 
             vjust = 1, nudge_y = -0.005) +
   scale_y_continuous(labels = scales::percent) +
+  scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 15)) +
   facet_grid(cols = vars(earncat), scales = "free", space = "free") +
   geom_hline(aes(yintercept = nonfarm_growth), color = "gray50",
              linetype = "dashed") +
   geom_text(data = ann_text, label = "Growth rate across all industries",
-            hjust = "left", nudge_x = -0.5) +
+            hjust = "left", nudge_x = -0.5, nudge_y = 0.005) +
   labs(title = "The fastest-growing industries have had lower average earnings",
        subtitle = "Percent change in employment by industry, 2007-2018",
        x = "Industry", y = "Percent change in employment",
@@ -206,21 +218,41 @@ load("plot_data/black_white_unemployment_gap.Rdata")
 ggplot(raceth_unemp_yr, aes(x = year)) +
   geom_errorbar(aes(ymin = white/100, ymax = black/100), color = "gray50", 
                 alpha = 0.75) +
-  geom_line(aes(y = (black - white)/100), color = "orange") +
+  geom_line(aes(y = (black - white)/100), color = "orange", size = 1.25) +
   scale_x_continuous(breaks = seq(1970, 2020, 5)) +
   scale_y_continuous(labels = scales::percent) +
-  labs(title = "Black unemployment has always been higher than white
-       unemployment, but the gap is smaller than ever",
+  labs(title = "Black unemployment has always been higher than white unemployment
+       but the gap is smaller than ever",
        subtitle = "Average annual unemployment rate by race, 1971-2018",
        x = "Year", y = "Average annual unemployment rate",
        caption = "Source: Bureau of Labor Statistics Current Population Survey") +
-  annotate(geom = "errorbar", x = 1988, ymin = 0.18, ymax = 0.195, 
+  annotate(geom = "errorbar", x = 1998, ymin = 0.18, ymax = 0.195, 
            color = "gray50") +
-  annotate(geom = "text", x = 1996, y = 0.195, label = "Black unemployment",
+  annotate(geom = "text", x = 2004, y = 0.195, label = "Black unemployment",
            size = 3.5) +
-  annotate(geom = "text", x = 1996, y = 0.18, label = "White unemployment",
+  annotate(geom = "text", x = 2004, y = 0.18, label = "White unemployment",
            size = 3.5) +
-  annotate(geom = "line", x = c(2005, 2007), y = rep(0.1875, 2), color = "orange",
+  annotate(geom = "line", x = c(2010, 2012), y = rep(0.1875, 2), color = "orange",
            size = 1.25) +
-  annotate(geom = "text", x = 2013, y = 0.1875, label = "Black-white gap", size = 3.5)
+  annotate(geom = "text", x = 2016, y = 0.1875, label = "Black-white gap", size = 3.5)
+```
+
+#### The labor market might have more slack than first meets the eye
+
+In order to be considered officially unemployed, an individual must be out of work, available to work, and have actively looked for work within the last month. However, this measure understates the total slack in the labor market because it does not account for "marginally attached" workers, who don't have work and want it but have only searched for a job within the last year, or "discouraged" workers, who want a job but have given up searching. In addition, the official unemployment number does not include people who are working part-time but would prefer full-time work. The chart below compares the offical measure to these alternative measures over time, showing that the officially unemployed only represent about half of a larger group of individuals who want a full-time job and don't have one.  
+
+```{r}
+load("plot_data/different_unemployment_measures.Rdata")
+
+ggplot(filter(unemp_annual, year %in% seq(2008, 2018)), 
+       aes(x = year, y = value, group = names)) +
+  geom_col(aes(fill = names), position = "stack") +
+  scale_y_continuous(labels = scales::number) +
+  scale_fill_discrete(name = "") +
+  theme(legend.position = "top") +
+  labs(title = "The official unemployment measure only tells part of the story",
+       subtitle = "Alternative measures of underutilized workers, in thousands, 2008-2018",
+       x = "Year", y = "Workers (thousands)",
+       caption = "Source: Current Population Survey") 
+
 ```

@@ -38,3 +38,40 @@ rm(mf, durable, nondurable, compare)
 #===============================================================================#
 
 rshade <- nberDates() %>% mutate(Start = lubridate::ymd)
+
+#===============================================================================#
+# DEVELOPING A GRID FUNCTION
+#===============================================================================#
+
+# goal: one block for each 100,000 people
+grid09 <- expand.grid(x = seq(1, 8), y = seq(1, 32)) 
+grid09 <- grid09[1:262, ]
+grid09$z <- c(rep("a", 143), rep("b", 8), rep("c", 22), rep("d", 89))
+
+grid18 <- expand.grid(x = seq(10, 17), y = seq(1, ceiling(sum(unemp18$value)/100/8)))
+# grid18$z <- c(rep("a", 62), rep("b", 4), rep("c", 15), rep("d", 47))
+
+u18 <- unemp18 %>% mutate(value = value/100)
+# z <- unlist(sapply(unique(u18$names), function(x) rep(x, u18$value[u18$names == x])))
+# grid18$z <- c(z, rep(NA, nrow(grid18) - length(z)))
+
+grid18 %<>% bind_rows(data.frame(x = seq(10,14), y = rep(17, 5),
+                                 z = c("a", "a", "b","c","d")))
+
+# grid18 <- expand.grid(x = seq(1, 8), y = seq(1, 16))
+# grid18$z <- c(rep("a", 62), rep("b", 4), rep("c", 15), rep("d", 47))
+# gridcombo <- bind_rows(mutate(grid09, year = "09"),
+#                        mutate(grid18, year = "18"))
+# 
+# ggplot(gridcombo, aes(x = x, y = y, fill = z), color = "white") +
+#   geom_tile(size = 4) +
+#   facet_wrap(facets = vars(year)) +
+#   coord_equal()
+
+
+ggplot() +
+  geom_tile(data = grid09, aes(x = x, y = y, fill = z), color = "white") +
+  geom_tile(data = grid18, aes(x = x, y = y, fill = z), color = "white") +
+  scale_fill_discrete(na.value = "white") +
+  coord_equal() +
+  theme_minimal()

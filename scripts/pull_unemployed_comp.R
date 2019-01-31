@@ -55,7 +55,7 @@ annual_totals <- unemp_annual %>% select(year, value) %>%
 
 unemp_annual %<>% left_join(annual_totals, by = "year")
 
-save.image("plot_data/different_unemployment_measures.Rdata")
+# save.image("plot_data/different_unemployment_measures.Rdata")
 
 #===============================================================================#
 # MAKE A STACKED BAR
@@ -71,6 +71,65 @@ ggplot(filter(unemp_annual, year %in% seq(2008, 2018)),
        subtitle = "Alternative measures of underutilized workers, in thousands, 2008-2018",
        x = "Year", y = "Workers (thousands)",
        caption = "Source: Current Population Survey") 
+
+#===============================================================================#
+# WAFFLE, FROM SCRATCH
+#===============================================================================#
+
+scale_year_data <- function(df, yr, scale = FALSE) {
+  rv <- filter(df, year == yr) %>% ungroup() %>% select(names, value)
+  yr_tot <- sum(rv$value)
+  rv$order <- c(4, 1, 3, 2)
+  rv %<>% arrange(order)
+  if(scale) {
+    rv %<>% mutate(value = value / yr_tot * 100)}
+  return(rv)
+}
+
+
+unemp09 <- scale_year_data(unemp_annual, 2009)
+unemp18 <- scale_year_data(unemp_annual, 2018) 
+
+# create an array of values to plot for a single year
+gridfn <- function(df, blockval, per_row) {
+  
+  scaled_df <- df %>% mutate(value = value / blockval) %>% 
+    mutate(order = case_when(
+    names == "Unemployed" ~ 1,
+    names == "Discouraged" ~ 2,
+    names == "Marginally attached" ~ 3,
+    names == "Part-time for economic reasons" ~ 4
+  )) %>% arrange(order)
+  total <- sum(scaled_df$value)
+
+  grid <- expand.grid(x = seq(1, per_row), y = seq(1, ceiling(total / per_row)))
+  z <- unlist(sapply(unique(scaled_df$names),
+                     function(x) rep(x, scaled_df$value[scaled_df$names == x])))
+  grid$z <- c(z, rep(NA, nrow(grid) - length(z)))
+  return(grid)
+}
+
+grid_more_yrs <- function(df, years, blockval, per_row) {
+  grids <- data.frame(x = c(0), y = c(0), z = c(""))
+  for(yr in years){
+    g <- filter(df, year == yr) %>% ungroup() %>% select(names, value) %>% 
+      gridfn(blockval = blockval, per_row = per_row) %>% mutate(year = yr)
+    grids <- bind_rows(grids, data.frame(g))
+  }
+  grids %<>% filter(x > 0)
+  return(grids)
+}
+
+grids <- grid_more_yrs(filter(unemp_annual), 
+                       seq(2007, 2018), blockval = 500, per_row = 5) 
+
+ggplot(grids, aes(x = x, y = y, fill = z)) +
+  geom_tile(color = "white") +
+  facet_grid(cols = vars(year)) +
+  scale_fill_discrete(na.value = "white") +
+  coord_equal() +
+  theme(legend.position = "bottom")
+
 
 # #===============================================================================#
 # # TRY MAKING WAFFLE CHARTS

@@ -86,7 +86,6 @@ scale_year_data <- function(df, yr, scale = FALSE) {
   return(rv)
 }
 
-
 unemp09 <- scale_year_data(unemp_annual, 2009)
 unemp18 <- scale_year_data(unemp_annual, 2018) 
 
@@ -129,54 +128,3 @@ ggplot(grids, aes(x = x, y = y, fill = z)) +
   scale_fill_discrete(na.value = "white") +
   coord_equal() +
   theme(legend.position = "bottom")
-
-
-# #===============================================================================#
-# # TRY MAKING WAFFLE CHARTS
-# #===============================================================================#
-# 
-# # test the waffle
-# test1 <- filter(unemp_annual, year == 2018) %>% ungroup() %>%
-#   select(names, value) %>% 
-#   mutate(value = value / 100) 
-# 
-# # reoder to reflect composition
-# test1$order <- c(4, 1, 3, 2)
-# test1 %<>% arrange(order)
-# 
-# 
-# scale_year_data <- function(df, yr, scale = FALSE) {
-#   rv <- filter(df, year == yr) %>% ungroup() %>% select(names, value)
-#   yr_tot <- sum(rv$value) 
-#   rv$order <- c(4, 1, 3, 2)
-#   rv %<>% arrange(order) 
-#   if(scale) {
-#     rv %<>% mutate(value = value / yr_tot * 100)}
-#   return(rv)
-# }
-# 
-# adjfactor <- sum(unemp_annual$value[unemp_annual$year==2018]) /
-#   sum(unemp_annual$value[unemp_annual$year==2009])
-# 
-# unemp09 <- scale_year_data(unemp_annual, 2009)
-# unemp18 <- scale_year_data(unemp_annual, 2018) %>% mutate(value * adjfactor)
-# 
-# ar09 <- expand.grid(y = 1:10, x = seq_len(ceiling(sum(unemp09$value) / 10)))
-# 
-# ggplot(ar09, aes(x = x, y = y)) +
-#   geom_tile(fill = "orange")
-# 
-# seq_len(pad + (ceiling(sum(parts) / rows)))
-# 
-# w09 <- waffle(unemp09$value)
-# # waffle(unemp18$value)
-# 
-# iron(
-#   waffle(unemp09$value),
-#   waffle(unemp18$value, pad = 10)
-# )
-# 
-# 
-# unemp_annual %<>% ungroup() %>% 
-#   group_by(year) %>% summarize(total = sum(value)) %>% 
-#   filter(year > 1993) %>% left_join(unemp_annual, by = "year")

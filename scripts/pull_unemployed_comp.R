@@ -61,7 +61,6 @@ unemp_annual %<>% left_join(annual_totals, by = "year")
 # MAKE A STACKED BAR
 #===============================================================================#
 
-
 ggplot(filter(unemp_annual, year %in% seq(2008, 2018)), 
        aes(x = year, y = value, group = names)) +
   geom_col(aes(fill = names), position = "stack") +

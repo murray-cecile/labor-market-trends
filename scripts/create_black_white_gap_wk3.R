@@ -66,10 +66,12 @@ raceth_unemp_yr <- filter(raceth_unemp, year > 1971) %>% group_by(year) %>%
 # MAKE CHART
 #===============================================================================#
 
+load("plot_data/black_white_unemployment_gap.Rdata")
+
 ggplot(raceth_unemp_yr, aes(x = year)) +
-  geom_errorbar(aes(ymin = white/100, ymax = black/100), color = "gray50", 
+  geom_errorbar(aes(ymin = white/100, ymax = black/100), color = "orange", 
                 alpha = 0.75) +
-  geom_line(aes(y = (black - white)/100), color = "orange") +
+  # geom_line(aes(y = (black - white)/100), color = "orange") +
   scale_x_continuous(breaks = seq(1970, 2020, 5)) +
   scale_y_continuous(labels = scales::percent) +
   labs(title = "Black unemployment has always been higher than white

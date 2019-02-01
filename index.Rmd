@@ -216,9 +216,7 @@ load("plot_data/black_white_unemployment_gap.Rdata")
 
 
 ggplot(raceth_unemp_yr, aes(x = year)) +
-  geom_errorbar(aes(ymin = white/100, ymax = black/100), color = "gray50", 
-                alpha = 0.75) +
-  geom_line(aes(y = (black - white)/100), color = "orange", size = 1.25) +
+  geom_errorbar(aes(ymin = white/100, ymax = black/100), color = "orange") +
   scale_x_continuous(breaks = seq(1970, 2020, 5)) +
   scale_y_continuous(labels = scales::percent) +
   labs(title = "Black unemployment has always been higher than white unemployment
@@ -231,10 +229,7 @@ ggplot(raceth_unemp_yr, aes(x = year)) +
   annotate(geom = "text", x = 2004, y = 0.195, label = "Black unemployment",
            size = 3.5) +
   annotate(geom = "text", x = 2004, y = 0.18, label = "White unemployment",
-           size = 3.5) +
-  annotate(geom = "line", x = c(2010, 2012), y = rep(0.1875, 2), color = "orange",
-           size = 1.25) +
-  annotate(geom = "text", x = 2016, y = 0.1875, label = "Black-white gap", size = 3.5)
+           size = 3.5) 
 ```
 
 #### The labor market might have more slack than first meets the eye

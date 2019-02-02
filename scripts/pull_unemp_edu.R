@@ -74,36 +74,38 @@ grid_more_yrs <- function(df, years, blockval, per_row) {
 }
 
 grids <- grid_more_yrs(dplyr::rename(unemp_edu), 
-                       seq(1992, 2018), blockval = 100, per_row = 6) %>% 
-  mutate(order = case_when(
-    z == "Less than high school" ~ 1,
-    z == "High school graduate" ~ 2,
-    z == "Some college or associate's degree " ~ 3,
-    z == "Bachelor's degree or higher" ~ 4
-  ))
+                       c(1997, 2007, 2017), blockval = 100, per_row = 4) %>% 
+  mutate(x = x + (year - 1997) / 2,
+         order = case_when(
+           z == "Less than high school" ~ 1,
+           z == "High school graduate" ~ 2,
+           z == "Some college or associate's degree " ~ 3,
+           z == "Bachelor's degree or higher" ~ 4
+         ))
 
-ggplot(filter(grids, year %in% c(1997, 2007, 2017)),
-       aes(x = x, y = y, fill = reorder(z, order))) +
+
+ggplot(grids, aes(x = x, y = y, fill = reorder(z, order))) +
   geom_tile(color = "white") +
-  facet_grid(cols = vars(year)) +
   scale_fill_discrete(na.value = "white") +
+  scale_x_continuous(breaks = c(2.5, 7.5, 12.5), labels = c(1997, 2007, 2017)) +
   coord_equal() +
-  theme(legend.position = "bottom")
+  labs(title = "Today's unemployed population includes more individuals
+  with at least some college education",
+       subtitle = "Unemployed population by educational attainment near three business
+  cycle peaks") +
+  annotate(geom = "tile", x = 1, y = 13, fill = "gray50") +
+  annotate(geom = "text", x = 3, y = 13, label = "Represents \n100,000 people",
+           size = 3) +
+  annotate(geom = "text", x = 12.5, y = 1, label = "Less than\nhigh school", 
+           size = 3) +
+  annotate(geom = "text", x = 12.5, y = 5, label = "High school\ngraduate",
+           size = 3) +
+  annotate(geom = "text", x = 12.5, y = 8, label = "Some college or\nassociate's degree",
+           size = 3) +
+  annotate(geom = "text", x = 12.5, y = 11, label = "Bachelor's degree\n or higher", 
+           size = 3) +
+  theme(panel.background = element_rect(fill = "#FFFFFF"),
+        axis.title = element_blank(), axis.ticks = element_blank(),
+        axis.text.y = element_blank(), legend.position = "none")
 
-grids <- grid_more_yrs(dplyr::rename(unemp_edu), 
-                       seq(1992, 2018), blockval = 100, per_row = 1) %>% 
-  mutate(order = case_when(
-    z == "Less than high school" ~ 1,
-    z == "High school graduate" ~ 2,
-    z == "Some college or associate's degree " ~ 3,
-    z == "Bachelor's degree or higher" ~ 4
-  ))
 
-ggplot(filter(grids, year > 2000),
-       aes(x = year, y = y, fill = reorder(z, order))) +
-  geom_tile(color = "white") +
-  scale_fill_discrete(na.value = "white") +
-  theme(legend.position = "bottom")
-
-# ggplot(unemp_edu, aes(x = year, y = share, fill = names)) +
-#   geom_area()

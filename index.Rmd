@@ -233,11 +233,87 @@ ggplot(raceth_unemp_yr, aes(x = year)) +
            size = 3.5) 
 ```
 
+#### The educational profile of the unemployed is slowly changing
+
+A few decades ago, a high school diploma - let alone a college degree - used to be sufficient education to guarantee reasonably steady, sufficiently well-paid employment. Over time, however, the workforce has become more educated, and as a result, the unemployed population contains more post-secondary degree-holders even when the labor market is strong. The chart below shows educational attainment among the unemployed at three such moments of relatively low unemployment. 
+
+```{r unemp_edu, warning=FALSE}
+#===============================================================================#
+# MAKE WAFFLES, FROM SCRATCH
+#===============================================================================#
+
+load("plot_data/unemployment_education.Rdata")
+ 
+# create an array of values to plot for a single year
+gridfn <- function(df, blockval, per_row) {
+  
+  scaled_df <- df %>% mutate(value = value / blockval)
+  total <- sum(scaled_df$value)
+  
+  grid <- expand.grid(x = seq(1, per_row), y = seq(1, ceiling(total / per_row)))
+  z <- unlist(sapply(unique(scaled_df$names),
+                     function(x) rep(x, scaled_df$value[scaled_df$names == x])))
+  grid$z <- c(z, rep(NA, nrow(grid) - length(z)))
+  return(grid)
+}
+
+grid_more_yrs <- function(df, years, blockval, per_row) {
+  grids <- data.frame(x = c(0), y = c(0), z = c(""))
+  for(yr in years){
+    g <- filter(df, year == yr) %>% ungroup() %>% select(names, value) %>% 
+      gridfn(blockval = blockval, per_row = per_row) %>% mutate(year = yr)
+    grids <- bind_rows(grids, data.frame(g))
+  }
+  grids %<>% filter(x > 0)
+  return(grids)
+}
+
+grids <- grid_more_yrs(unemp_edu, years = c(1997, 2007, 2017), 
+                       blockval = 100, per_row = 4) %>% 
+  mutate(x = x + (year - 1997) / 2,
+         order = case_when(
+           z == "Less than high school" ~ 1,
+           z == "High school graduate" ~ 2,
+           z == "Some college or associate's degree " ~ 3,
+           z == "Bachelor's degree or higher" ~ 4
+         ))
+
+colors <- c("Less than high school" = lt_blue,
+            "High school graduate" = lt_pink,
+            "Some college or associate's degree" = lt_green,
+            "Bachelor's degree or higher" = lt_orange)
+
+ggplot(grids, aes(x = x, y = y, fill = reorder(z, order))) +
+  geom_tile(color = "white") +
+  scale_fill_manual(values = colors, na.value = "white") +
+  scale_x_continuous(breaks = c(2.5, 7.5, 12.5), labels = c(1997, 2007, 2017),
+                     limits = c(0, 20)) +
+  coord_equal() +
+  labs(title = "Today's unemployed population includes more individuals with at least some college education",
+       subtitle = "Unemployed population by educational attainment near three business cycle peaks") +
+  annotate(geom = "tile", x = 1, y = 13, fill = "gray50") +
+  annotate(geom = "text", x = 4, y = 13, label = "Represents \n100,000 people",
+           size = 3) +
+  annotate(geom = "text", x = 17, y = 1, label = "Less than\nhigh school", 
+           size = 3) +
+  annotate(geom = "text", x = 17, y = 4, label = "High school\ngraduate",
+           size = 3) +
+  annotate(geom = "text", x = 17, y = 8, label = "Some college or\nassociate's degree",
+           size = 3) +
+  annotate(geom = "text", x = 17, y = 11, label = "Bachelor's degree\n or higher", 
+           size = 3) +
+  theme(panel.background = element_rect(fill = "#FFFFFF"),
+        axis.title = element_blank(), axis.ticks = element_blank(),
+        axis.text.y = element_blank(), legend.position = "none")
+
+```
+
+
 #### The labor market might have more slack than first meets the eye
 
 In order to be considered officially unemployed, an individual must be out of work, available to work, and have actively looked for work within the last month. However, this measure understates the total slack in the labor market because it does not account for "marginally attached" workers, who don't have work and want it but have only searched for a job within the last year, or "discouraged" workers, who want a job but have given up searching. In addition, the official unemployment number does not include people who are working part-time but would prefer full-time work. The chart below compares the offical measure to these alternative measures over time, showing that the officially unemployed only represent about half of a larger group of individuals who want a full-time job and don't have one.  
 
-```{r}
+```{r alternative_measures}
 load("plot_data/different_unemployment_measures.Rdata")
 
 ggplot(filter(unemp_annual, year %in% seq(2008, 2018)), 

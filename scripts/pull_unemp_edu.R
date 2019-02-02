@@ -40,14 +40,11 @@ annual_totals <- unemp_edu %>% select(year, value) %>%
 unemp_edu %<>% left_join(annual_totals, by = "year") %>% 
   mutate(share = value / total)
 
+save.image("plot_data/unemployment_education.Rdata")
+
 #===============================================================================#
 # MAKE WAFFLES, FROM SCRATCH
 #===============================================================================#
-
-unemp09 <- filter(unemp_edu, year == 2009) %>% ungroup() %>% select(names, share) %>% 
-  dplyr::rename(value = share)
-unemp18 <- filter(unemp_edu, year == 2018) %>% ungroup() %>% select(names, share) %>% 
-  dplyr::rename(value = share)
 
 # create an array of values to plot for a single year
 gridfn <- function(df, blockval, per_row) {
@@ -83,26 +80,31 @@ grids <- grid_more_yrs(dplyr::rename(unemp_edu),
            z == "Bachelor's degree or higher" ~ 4
          ))
 
+colors <- c("Less than high school" = lt_blue,
+            "High school graduate" = lt_pink,
+            "Some college or associate's degree" = lt_green,
+            "Bachelor's degree or higher" = lt_orange)
 
 ggplot(grids, aes(x = x, y = y, fill = reorder(z, order))) +
   geom_tile(color = "white") +
-  scale_fill_discrete(na.value = "white") +
-  scale_x_continuous(breaks = c(2.5, 7.5, 12.5), labels = c(1997, 2007, 2017)) +
+  scale_fill_manual(values = colors, na.value = "white") +
+  scale_x_continuous(breaks = c(2.5, 7.5, 12.5), labels = c(1997, 2007, 2017),
+                     limits = c(0, 20)) +
   coord_equal() +
   labs(title = "Today's unemployed population includes more individuals
   with at least some college education",
        subtitle = "Unemployed population by educational attainment near three business
   cycle peaks") +
   annotate(geom = "tile", x = 1, y = 13, fill = "gray50") +
-  annotate(geom = "text", x = 3, y = 13, label = "Represents \n100,000 people",
+  annotate(geom = "text", x = 4, y = 13, label = "Represents \n100,000 people",
            size = 3) +
-  annotate(geom = "text", x = 12.5, y = 1, label = "Less than\nhigh school", 
+  annotate(geom = "text", x = 17, y = 1, label = "Less than\nhigh school", 
            size = 3) +
-  annotate(geom = "text", x = 12.5, y = 5, label = "High school\ngraduate",
+  annotate(geom = "text", x = 17, y = 4, label = "High school\ngraduate",
            size = 3) +
-  annotate(geom = "text", x = 12.5, y = 8, label = "Some college or\nassociate's degree",
+  annotate(geom = "text", x = 17, y = 8, label = "Some college or\nassociate's degree",
            size = 3) +
-  annotate(geom = "text", x = 12.5, y = 11, label = "Bachelor's degree\n or higher", 
+  annotate(geom = "text", x = 17, y = 11, label = "Bachelor's degree\n or higher", 
            size = 3) +
   theme(panel.background = element_rect(fill = "#FFFFFF"),
         axis.title = element_blank(), axis.ticks = element_blank(),

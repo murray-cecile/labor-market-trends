@@ -7,10 +7,13 @@
 #===============================================================================#
 
 libs <- c("tidyverse", "magrittr", "stringr", "readr", "data.table", "janitor",
-          "blscrapeR", "lubridate", "here", "ggrepel", "censusapi")
+          "blscrapeR", "lubridate", "here", "ggrepel", "censusapi", "treemapify", 
+          "ggmosaic")
 lapply(libs, library, character.only=TRUE)
 
 blskey <- Sys.getenv("BLS_KEY")
+
+source("scripts/set_theme.R")
 
 #===============================================================================#
 # SERIES ID DICTIONARIES
@@ -27,3 +30,6 @@ ces_data_types <- fread("https://download.bls.gov/pub/time.series/ce/ce.datatype
 
 supersectors <- c("Goods-producing", "Service-providing",
                   "Private service-providing", "Total private")
+
+
+

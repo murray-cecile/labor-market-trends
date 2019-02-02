@@ -32,41 +32,27 @@ unemp_edu <- raw_data %>% filter(period == "M13") %>%
     series_id == "LNU03027660" ~ "High school graduate",
     series_id == "LNU03027662" ~ "Some college or associate's degree",
     series_id == "LNU03027689"  ~ "Bachelor's degree or higher"
-  ),
-  order = case_when(
-    names == "Less than high school" ~ 1,
-    names == "High school graduate" ~ 2,
-    names == "Some college or associate's degree " ~ 3,
-    names == "Bachelor's degree or higher" ~ 4
   )) %>% ungroup()
 
 annual_totals <- unemp_edu %>% select(year, value) %>% 
   group_by(year) %>% summarize(total = sum(value)) 
 
-unemp_edu %<>% left_join(annual_totals, by = "year")
+unemp_edu %<>% left_join(annual_totals, by = "year") %>% 
+  mutate(share = value / total)
 
 #===============================================================================#
 # MAKE WAFFLES, FROM SCRATCH
 #===============================================================================#
 
-scale_year_data <- function(df, yr, scale = FALSE) {
-  rv <- filter(df, year == yr) %>% ungroup() %>% select(names, value)
-  yr_tot <- sum(rv$value)
-  rv$order <- c(4, 1, 3, 2)
-  rv %<>% arrange(order)
-  if(scale) {
-    rv %<>% mutate(value = value / yr_tot * 100)}
-  return(rv)
-}
-
-unemp09 <- filter(unemp_edu, year == 2009) %>% ungroup() %>% select(names, value)
-unemp18 <- filter(unemp_edu, year == 2018) %>% ungroup() %>% select(names, value)
+unemp09 <- filter(unemp_edu, year == 2009) %>% ungroup() %>% select(names, share) %>% 
+  dplyr::rename(value = share)
+unemp18 <- filter(unemp_edu, year == 2018) %>% ungroup() %>% select(names, share) %>% 
+  dplyr::rename(value = share)
 
 # create an array of values to plot for a single year
 gridfn <- function(df, blockval, per_row) {
   
-  scaled_df <- df %>% mutate(value = value / blockval) %>% 
-  arrange(order)
+  scaled_df <- df %>% mutate(value = value / blockval)
   total <- sum(scaled_df$value)
   
   grid <- expand.grid(x = seq(1, per_row), y = seq(1, ceiling(total / per_row)))
@@ -79,7 +65,7 @@ gridfn <- function(df, blockval, per_row) {
 grid_more_yrs <- function(df, years, blockval, per_row) {
   grids <- data.frame(x = c(0), y = c(0), z = c(""))
   for(yr in years){
-    g <- filter(df, year == yr) %>% ungroup() %>% select(names, value, order) %>% 
+    g <- filter(df, year == yr) %>% ungroup() %>% select(names, value) %>% 
       gridfn(blockval = blockval, per_row = per_row) %>% mutate(year = yr)
     grids <- bind_rows(grids, data.frame(g))
   }
@@ -87,12 +73,37 @@ grid_more_yrs <- function(df, years, blockval, per_row) {
   return(grids)
 }
 
-grids <- grid_more_yrs(filter(unemp_edu), 
-                       seq(1992, 2018), blockval = 100, per_row = 1) 
+grids <- grid_more_yrs(dplyr::rename(unemp_edu), 
+                       seq(1992, 2018), blockval = 100, per_row = 6) %>% 
+  mutate(order = case_when(
+    z == "Less than high school" ~ 1,
+    z == "High school graduate" ~ 2,
+    z == "Some college or associate's degree " ~ 3,
+    z == "Bachelor's degree or higher" ~ 4
+  ))
 
-ggplot(grids, aes(x = year, y = y, fill = z)) +
+ggplot(filter(grids, year %in% c(1997, 2007, 2017)),
+       aes(x = x, y = y, fill = reorder(z, order))) +
   geom_tile(color = "white") +
-  # facet_wrap(facets = vars(year)) +
+  facet_grid(cols = vars(year)) +
   scale_fill_discrete(na.value = "white") +
   coord_equal() +
   theme(legend.position = "bottom")
+
+grids <- grid_more_yrs(dplyr::rename(unemp_edu), 
+                       seq(1992, 2018), blockval = 100, per_row = 1) %>% 
+  mutate(order = case_when(
+    z == "Less than high school" ~ 1,
+    z == "High school graduate" ~ 2,
+    z == "Some college or associate's degree " ~ 3,
+    z == "Bachelor's degree or higher" ~ 4
+  ))
+
+ggplot(filter(grids, year > 2000),
+       aes(x = year, y = y, fill = reorder(z, order))) +
+  geom_tile(color = "white") +
+  scale_fill_discrete(na.value = "white") +
+  theme(legend.position = "bottom")
+
+# ggplot(unemp_edu, aes(x = year, y = share, fill = names)) +
+#   geom_area()

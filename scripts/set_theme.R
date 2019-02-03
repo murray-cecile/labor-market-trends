@@ -28,7 +28,7 @@ lt_theme <- function (...) {
   plot.subtitle = element_text(family = "Cabin"),
   plot.caption = element_text(family = "Cabin", face = "italic"),
   panel.background = element_rect(fill = NA), 
-  panel.grid.major = element_line(color = "gray85", size = rel(0.75),
+  panel.grid.major = element_line(color = "gray75", size = rel(0.75),
                                   linetype = "dotted"),
   panel.grid.minor = element_blank(),
   axis.ticks = element_blank(),

@@ -85,7 +85,7 @@ industry_colors <- c("Education and health services" = lt_green,
                      "All industries" = lt_blue, 
                      "Other industries" = "gray50")
 
-# TO DO: directly label the industries
+source("scripts/set_theme.R")
 
 # plot indexed employment in selected industries
 ggplot(index_naics2, aes(x = date, y = index_jobs * 100, group = industry_name,
@@ -99,46 +99,12 @@ ggplot(index_naics2, aes(x = date, y = index_jobs * 100, group = industry_name,
   scale_x_date(date_breaks = "1 year", date_labels = "%Y",
                limits = c(min(index_naics2$date), max(index_naics2$date))) + 
   lt_theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = c(0.48, .1), legend.direction = "horizontal",
-        legend.key=element_blank(), legend.background = element_blank()) +
+        legend.position = c(0.48, .1), legend.direction = "horizontal") +
   labs(title = "Education and health services boomed while construction busted \n and mining and logging fluctuated",
        subtitle = "Employment by industry, indexed to January 2007",
        x = "Year", y = "Indexed employment (Jan. 2007 = 100)",
        caption = "Source: Bureau of Labor Statistics Current Employment Statistics")
 
-```
-
-#### How were different states affected?
-
-The chart below shows that the recession did not treat all states equally. Even when the national unemployment rate peaked at 10% in October 2009, the Dakotas and Nebraska experienced unemployment rates between 3 and 5 percent, likely due to the shale boom. Meanwhile, states like Michigan, Nevada, Alabama, and California - all of which were hit hard by the foreclosure crisis - saw their unemployment rates hang near 12%. 
-
-```{r}
-
-load("plot_data/state_unemployment_dot_plot.Rdata")
-
-ggplot(filter(stdata, period == "M10", year %in% c(2009)), 
-       aes(x = reorder(state_abb, value), y = value)) +
-  geom_point(aes(size = lf), color = lt_blue) +
-  scale_size_continuous(breaks = c(0, 5000000, 10000000, 15000000),
-                        labels = c("Under 5M", "5 to 10M", "10 to 15M", "15+ M"),
-                        limits = c(0,20000000),
-                        name = "Labor Force Size") +
-  scale_y_continuous(labels = scales::percent) +
-  geom_hline(yintercept = 0.1, color = "gray70", linetype = "longdash" ) +
-  labs(title = "States saw widely different unemployment rates in the depth of the recession",
-       subtitle = "Unemployment rate and state labor force size (millions), October 2009",
-       x = "State", y = "Unemployment Rate",
-       caption = "Source: Bureau of Labor Statistics Current Population Survey.
-       Note: Peak national unemployment occurred in October 2009.") +
-  lt_theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.ticks.x = element_blank(), legend.position = "top",
-        legend.key=element_blank(), legend.background = element_blank()) +
-  annotate(geom = "text", x = 10, y = .105, label = "National unemployment rate: 10%",
-           size = 4, family = "Cabin") +
-  annotate(geom = "text", x = 13, y = .038, label = "The Dakotas benefited from the shale boom",
-           family = "Cabin", size = 3.5) +
-  annotate(geom = "text", x = 41, y = .131, label = "Michigan's auto industry was hit hard",
-           family = "Cabin", size = 3.5)
 ```
 
 
@@ -183,7 +149,7 @@ ann_text <- data.frame(industry_name = "Information", pct_change = nonfarm_growt
 ```
 
 ```{r}
-
+source("scripts/set_theme.R")
 # TO DO: think about how to encode industry size
 
 ggplot(filter(industry_growth, !is.na(industry_code)),
@@ -211,13 +177,77 @@ ggplot(filter(industry_growth, !is.na(industry_code)),
 
 ```
 
+#### How were different parts of the country affected?
+
+The chart below shows that the recession did not treat all states equally. Even when the national unemployment rate peaked at 10% in October 2009, the Dakotas and Nebraska experienced unemployment rates between 3 and 5 percent, likely due to the shale boom. Meanwhile, states like Michigan, Nevada, Alabama, and California - all of which were hit hard by the foreclosure crisis - saw their unemployment rates hang near 12%. 
+
+```{r}
+
+load("plot_data/state_unemployment_dot_plot.Rdata")
+source("scripts/set_theme.R")
+
+
+ggplot(filter(stdata, period == "M10", year %in% c(2009)), 
+       aes(x = reorder(state_abb, value), y = value)) +
+  geom_point(aes(size = lf), color = lt_blue) +
+  scale_size_continuous(breaks = c(0, 5000000, 10000000, 15000000),
+                        labels = c("Under 5M", "5 to 10M", "10 to 15M", "15+ M"),
+                        limits = c(0,20000000),
+                        name = "Labor Force Size") +
+  scale_y_continuous(labels = scales::percent) +
+  geom_hline(yintercept = 0.1, color = "gray70", linetype = "longdash" ) +
+  labs(title = "States saw widely different unemployment rates in the depth of the recession",
+       subtitle = "Unemployment rate and state labor force size (millions), October 2009",
+       x = "State", y = "Unemployment Rate",
+       caption = "Source: Bureau of Labor Statistics Current Population Survey.
+       Note: Peak national unemployment occurred in October 2009.") +
+  lt_theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.x = element_blank(), legend.position = "top",
+        panel.grid.major = element_line(color = "gray75")) +
+  annotate(geom = "text", x = 10, y = .105, label = "National unemployment rate: 10%",
+           size = 4, family = "Cabin") +
+  annotate(geom = "text", x = 13, y = .038, label = "The Dakotas benefited from the shale boom",
+           family = "Cabin", size = 3.5) +
+  annotate(geom = "text", x = 41, y = .131, label = "Michigan's auto industry was hit hard",
+           family = "Cabin", size = 3.5)
+```
+
+In addition, the "official" dates of the recessinon didn't align with what was happening in labor markets. Technically, a recession is defined as two consecutive quarters of negative growth in gross domestic product (GDP); while unemployment rates are strongly correlated with GDP, they are of course not identical. While the Great Recession technically ended at the end of the second quarter of 2009, unemployment continued to rise and stay elevated in some areas. The chart below shows the maximum unemployment rate each county experienced between 2007 and 2017, averaged by quarter and adjusted for seasonal trends. Clearly, some parts of the country were still experiencing very high unemployment rates even years after the crisis had technically ended. 
+
+
+```{r county_unemp}
+load("plot_data/county_unemployment_scatter.Rdata")
+source("scripts/set_theme.R")
+
+
+ggplot(max_urate, aes(x = yq(quarter), y = max_urate/100, alpha = pop)) +
+  geom_rect(aes(xmin = yq("2008-Q1"), xmax = yq("2009-Q3"),
+                ymin = 0, ymax = .325),
+            fill = "gray85", color = "gray85", alpha = 0.75) +
+  geom_point(color = lt_blue) +
+  scale_alpha_continuous(name = "Population (log),\n2017", trans = "log10",
+                         label = scales::number_format(big.mark = ",")) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_x_date(breaks = "1 year", labels = scales::date_format(format = "%Y")) +
+  labs(title = "Many counties experienced their highest unemployment rates after 
+  the technical end of the Great Recession",
+       subtitle = "Maximum quarterly average county unemployment rate, seasonally smoothed, 2007-2017",
+       x = "Quarter", y = "Unemployment Rate",
+       caption = "Source: Bureau of Labor Statistics Local Area Unemployment Statistics
+       Note: Data were seasonally smoothed by subtracting the average monthly difference from annual average.") +
+  lt_theme(panel.grid.major.x = element_line(color = "gray75", linetype = "dotted"),
+           panel.grid.major.y = element_line(color = "gray75", linetype = "dotted"),
+           panel.ontop = TRUE,
+           legend.position = c(0.9, 0.75)) 
+```
+
 #### How did the recession affect longer-term labor market disparities?
 
 Economists sometimes categorize labor market trends as either cyclical or structural to denote whether fluctuations are primarily driven by the economic cycle or whether they reflect deeper changes in the labor market. Unfortunately, racial disparities in unemployment are both cyclical and structural, as the chart below illustrates. The unemployment rate among black Americans has been higher than the unemployment rate among white Americans for as long as the Current Population Survey has measured it (the white unemployment rate is available back to 1954, but the black unemployment rate is only available after 1971). That gap only widens during recessions. However, the current disparity is the smallest it has ever been.
 
 ```{r}
 load("plot_data/black_white_unemployment_gap.Rdata")
-
+source("scripts/set_theme.R")
 
 ggplot(raceth_unemp_yr, aes(x = year)) +
   geom_linerange(aes(ymin = white/100, ymax = black/100, alpha = bw_delta),
@@ -328,6 +358,8 @@ In order to be considered officially unemployed, an individual must be out of wo
 
 ```{r alternative_measures}
 load("plot_data/different_unemployment_measures.Rdata")
+source("scripts/set_theme.R")
+
 
 altmeasure_colors <- c("Discouraged" = lt_green, 
                      "Marginally attached" = lt_pink,
@@ -337,7 +369,8 @@ altmeasure_colors <- c("Discouraged" = lt_green,
 ggplot(filter(unemp_annual, year %in% seq(2008, 2018)), 
        aes(x = year, y = value, group = names)) +
   geom_col(aes(fill = names), position = "stack") +
-  scale_y_continuous(labels = scales::number) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_continuous(labels = scales::number_format(big.mark = "")) +
   scale_fill_manual(name = "", values = altmeasure_colors) +
   lt_theme(legend.position = "top", panel.ontop = TRUE, 
            panel.grid.major.x = element_blank(),

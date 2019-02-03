@@ -9,14 +9,37 @@
 # Font and text size choices for titles, subtitles, captions, labels and annotations
 # Panel and/or background color
 # Major and Minor Gridlines
-
+library(extrafont)
+library(extrafontdb)
 
 # Colors: 
-lt_blue <- "#2666ff"
+lt_blue <- "#217FBE"
 lt_orange <- "#FFA220"
 lt_pink <- "#E817A9"
 lt_yellow <- "#FFD816"
 lt_green <- "#17E849"
 
-lt_theme <- theme(panel.background = element_rect(fill = "#FFFFFF"), 
-                  panel.grid.major = element_line(color = "gray60"))
+# Fonts:
+# font_import()
+
+lt_theme <- function (...) {
+  theme(text = element_text(family = "Cabin Medium"),
+  plot.title = element_text(size = rel(1.25), face = "bold"),
+  plot.subtitle = element_text(family = "Cabin"),
+  plot.caption = element_text(family = "Cabin", face = "italic"),
+  panel.background = element_rect(fill = NA), 
+  panel.grid.major = element_line(color = "gray85", size = rel(0.75),
+                                  linetype = "dotted"),
+  panel.grid.minor = element_blank(),
+  axis.ticks = element_blank(),
+  axis.text = element_text(family = "Cabin SemiBold")) +
+  theme(...)
+}
+
+# ggplot(countypop, aes(x = pop, y = as.numeric(stcofips))) +
+#   geom_point() +
+#   labs(title = "This graph says something important",
+#        subtitle = "Description of the data",
+#        x = "X Variable", y = "Y Variable",
+#        caption = "Source: authoritative") +
+#   lt_theme()

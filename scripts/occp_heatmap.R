@@ -44,6 +44,10 @@ ggplot(ygrowth, aes(x = occupation, y = pct_change, fill = sex)) +
   geom_col(position = "stack") +
   lt_theme
 
-ggplot(ygrowth, 
-       aes(area = pct_change, fill = sex, subgroup = occupation)) +
-  geom_treemap()
+ggplot(y18, 
+       aes(area = value, fill = sex, subgroup = occupation)) +
+  geom_treemap() +
+  geom_treemap_text(aes(label = occupation))
+
+ggplot(ygrowth, aes(x = value_00, y = value_18, color = sex)) +
+  geom_point()

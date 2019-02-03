@@ -1,7 +1,7 @@
 ---
 title: "Visualizing Labor Market Trends"
 author: "Cecile Murray"
-date: "1/27/2019"
+date: "February 2019"
 output: 
   html_document:
     code_folding: hide
@@ -9,7 +9,7 @@ output:
     fig.height: 11
 ---
 
-Ten years after the onset of the Great Recession, the national labor market is humming, with the official unemployment rate at 3.7 percent and wage growth slowly accelerating. However, the rosy national figures mask important variation in labor market trends across industries, occupations, demographic groups, and geographic areas. This variation should matter to policymakers who are concerned about the extent to which different sectors and groups have actually recovered, and the degree to which economic growth is broadly shared.
+Ten years after the onset of the Great Recession, the national labor market is humming, with the official unemployment rate hovering around 4 percent and wage growth slowly accelerating. However, the rosy national figures mask important variation in labor market trends across industries, occupations, demographic groups, and geographic areas. This variation should matter to policymakers who are concerned about the extent to which different sectors and groups have actually recovered, and the degree to which economic growth is broadly shared.
 
 These visualizations aim to examine how the recession impacted these different groups as well as the extent to which the recovery is proceeding (or not) by looking at the pattern of job losses and job gains during and after the recession. I use data from a few different U.S. Bureau of Labor Statistics surveys, made easily accessible thanks to the excellent ```blscrapeR``` package.
 
@@ -26,6 +26,7 @@ blskey <- Sys.getenv("BLS_KEY")
 start08 <-  ymd("20080101")
 end08 <- ymd("20090630")
 
+source("scripts/set_theme.R")
 ```
 
 #### How did the recession affect different industries?
@@ -78,10 +79,10 @@ index_naics2 <- filter(naics2_data, periodName != "Annual")  %>%
 ```
 
 ```{r}
-industry_colors <- c("Education and health services" = "cyan3", 
-                     "Mining and logging" = "orange",
-                     "Construction" = "red",
-                     "All industries" = "blue", 
+industry_colors <- c("Education and health services" = lt_green, 
+                     "Mining and logging" = lt_orange,
+                     "Construction" = lt_pink,
+                     "All industries" = lt_blue, 
                      "Other industries" = "gray50")
 
 # TO DO: directly label the industries
@@ -97,8 +98,8 @@ ggplot(index_naics2, aes(x = date, y = index_jobs * 100, group = industry_name,
   scale_alpha(range = c(0.5, 1), guide = "none") +
   scale_x_date(date_breaks = "1 year", date_labels = "%Y",
                limits = c(min(index_naics2$date), max(index_naics2$date))) + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "top") +
+  lt_theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
   labs(title = "Education and health services boomed while construction busted \n and mining and logging fluctuated",
        subtitle = "Employment by industry, indexed to January 2007",
        x = "Year", y = "Indexed employment (Jan. 2007 = 100)",
@@ -182,12 +183,13 @@ ggplot(filter(industry_growth, !is.na(industry_code)),
        aes(x = reorder(industry_name, pct_change), y = pct_change,
                             fill = earncat)) +
   geom_col() +
-  scale_fill_manual(values = c("cyan3", "orange")) +
+  scale_fill_manual(values = c(lt_blue, lt_orange)) +
   geom_text(aes(label = round(pct_change * 100, 1)), hjust = 0.5, 
             vjust = 1, nudge_y = -0.005) +
   scale_y_continuous(labels = scales::percent) +
   scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 15)) +
-  facet_grid(cols = vars(earncat), scales = "free", space = "free") +
+  facet_grid(cols = vars(earncat), scales = "free", space = "free",
+             switch = "x") +
   geom_hline(aes(yintercept = nonfarm_growth), color = "gray50",
              linetype = "dashed") +
   geom_text(data = ann_text, label = "Growth rate across all industries",
@@ -197,8 +199,9 @@ ggplot(filter(industry_growth, !is.na(industry_code)),
        x = "Industry", y = "Percent change in employment",
        caption = "Source: Bureau of Labor Statistics Current Employment Statistics
        Note: High-and low-earning categories based on whether an industry's average hourly earnings are above or below \n average hourly earnings for all private jobs.")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.ticks.x = element_blank(), legend.position = "none")
+  lt_theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.x = element_blank(), legend.position = "none",
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
 ```
 
@@ -213,13 +216,13 @@ load("plot_data/black_white_unemployment_gap.Rdata")
 ggplot(raceth_unemp_yr, aes(x = year)) +
   geom_linerange(aes(ymin = white/100, ymax = black/100, color = bw_delta),
                  size = 2) +
-  geom_point(aes(y = white/100), color = "orange", size = 2) + 
-  geom_point(aes(y = black/100), color = "orange", size = 2) +
+  geom_point(aes(y = white/100), color = lt_orange, size = 2) + 
+  geom_point(aes(y = black/100), color = lt_orange, size = 2) +
   scale_x_continuous(breaks = seq(1970, 2020, 5)) +
   scale_y_continuous(labels = scales::percent) +
   scale_color_distiller(direction = 1, palette = "Oranges") +
   labs(title = "Black unemployment has always been higher than white unemployment
-       but the gap is smaller than ever",
+  but the gap is smaller than ever",
        subtitle = "Average annual unemployment rate by race, 1971-2018",
        x = "Year", y = "Average annual unemployment rate",
        caption = "Source: Bureau of Labor Statistics Current Population Survey") +
@@ -228,9 +231,10 @@ ggplot(raceth_unemp_yr, aes(x = year)) +
   annotate(geom = "point", x = 1998, y = 0.18, color = "orange") +
   annotate(geom = "point", x = 1998, y = 0.195, color = "orange") +
   annotate(geom = "text", x = 2004.5, y = 0.195, label = "Black unemployment",
-           size = 3.5) +
+           size = 3.5, family = "Cabin") +
   annotate(geom = "text", x = 2004.5, y = 0.18, label = "White unemployment",
-           size = 3.5) 
+           size = 3.5, family = "Cabin") +
+  lt_theme()
 ```
 
 #### The educational profile of the unemployed is slowly changing
@@ -243,6 +247,7 @@ A few decades ago, a high school diploma - let alone a college degree - used to 
 #===============================================================================#
 
 load("plot_data/unemployment_education.Rdata")
+source("scripts/set_theme.R")
  
 # create an array of values to plot for a single year
 gridfn <- function(df, blockval, per_row) {
@@ -293,18 +298,18 @@ ggplot(grids, aes(x = x, y = y, fill = reorder(z, order))) +
        subtitle = "Unemployed population by educational attainment near three business cycle peaks") +
   annotate(geom = "tile", x = 1, y = 13, fill = "gray50") +
   annotate(geom = "text", x = 4, y = 13, label = "Represents \n100,000 people",
-           size = 3) +
+           size = 3, family = "Cabin") +
   annotate(geom = "text", x = 17, y = 1, label = "Less than\nhigh school", 
-           size = 3) +
+           size = 3, family = "Cabin") +
   annotate(geom = "text", x = 17, y = 4, label = "High school\ngraduate",
-           size = 3) +
+           size = 3, family = "Cabin") +
   annotate(geom = "text", x = 17, y = 8, label = "Some college or\nassociate's degree",
-           size = 3) +
+           size = 3, family = "Cabin") +
   annotate(geom = "text", x = 17, y = 11, label = "Bachelor's degree\n or higher", 
-           size = 3) +
-  theme(panel.background = element_rect(fill = "#FFFFFF"),
-        axis.title = element_blank(), axis.ticks = element_blank(),
-        axis.text.y = element_blank(), legend.position = "none")
+           size = 3, family = "Cabin") +
+  lt_theme(axis.title = element_blank(), axis.text.y = element_blank(),
+           legend.position = "none", panel.grid.major = element_blank(),
+           panel.grid.minor = element_blank())
 
 ```
 
@@ -321,7 +326,10 @@ ggplot(filter(unemp_annual, year %in% seq(2008, 2018)),
   geom_col(aes(fill = names), position = "stack") +
   scale_y_continuous(labels = scales::number) +
   scale_fill_discrete(name = "") +
-  theme(legend.position = "top") +
+  lt_theme(legend.position = "top", panel.ontop = TRUE, 
+           panel.grid.major.x = element_blank(),
+           panel.grid.major.y = element_line(color = "gray85", size = 0.25,
+                                             linetype = "dotted")) +
   labs(title = "The official unemployment measure only tells part of the story",
        subtitle = "Alternative measures of underutilized workers, in thousands, 2008-2018",
        x = "Year", y = "Workers (thousands)",

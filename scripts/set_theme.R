@@ -32,7 +32,9 @@ lt_theme <- function (...) {
                                   linetype = "dotted"),
   panel.grid.minor = element_blank(),
   axis.ticks = element_blank(),
-  axis.text = element_text(family = "Cabin SemiBold")) +
+  axis.text = element_text(family = "Cabin SemiBold"),
+  legend.background = element_blank(),
+  legend.key = element_blank()) +
   theme(...)
 }
 

@@ -92,14 +92,15 @@ ggplot(index_naics2, aes(x = date, y = index_jobs * 100, group = industry_name,
                           color = selected_industry, alpha = selected)) +
   geom_rect(aes(xmin = start08, xmax = end08,
                 ymin = 60, ymax = 130),
-            fill = "gray85", color = "gray85") +
+            fill = "gray85", color = "gray85", alpha = 0.75) +
   geom_path(size = 0.75) +
   scale_color_manual(values = industry_colors, name = "") +
   scale_alpha(range = c(0.5, 1), guide = "none") +
   scale_x_date(date_breaks = "1 year", date_labels = "%Y",
                limits = c(min(index_naics2$date), max(index_naics2$date))) + 
   lt_theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "none") +
+        legend.position = c(0.48, .1), legend.direction = "horizontal",
+        legend.key=element_blank(), legend.background = element_blank()) +
   labs(title = "Education and health services boomed while construction busted \n and mining and logging fluctuated",
        subtitle = "Employment by industry, indexed to January 2007",
        x = "Year", y = "Indexed employment (Jan. 2007 = 100)",
@@ -117,21 +118,27 @@ load("plot_data/state_unemployment_dot_plot.Rdata")
 
 ggplot(filter(stdata, period == "M10", year %in% c(2009)), 
        aes(x = reorder(state_abb, value), y = value)) +
-  geom_point(aes(size = lf), color = "darkcyan") +
+  geom_point(aes(size = lf), color = lt_blue) +
   scale_size_continuous(breaks = c(0, 5000000, 10000000, 15000000),
                         labels = c("Under 5M", "5 to 10M", "10 to 15M", "15+ M"),
                         limits = c(0,20000000),
                         name = "Labor Force Size") +
   scale_y_continuous(labels = scales::percent) +
-  geom_hline(yintercept = 0.1, color = "gray50", linetype = "longdash" ) +
+  geom_hline(yintercept = 0.1, color = "gray70", linetype = "longdash" ) +
   labs(title = "States saw widely different unemployment rates in the depth of the recession",
        subtitle = "Unemployment rate and state labor force size (millions), October 2009",
        x = "State", y = "Unemployment Rate",
        caption = "Source: Bureau of Labor Statistics Current Population Survey.
        Note: Peak national unemployment occurred in October 2009.") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.ticks.x = element_blank(), legend.position = "top") +
-  annotate(geom = "text", x = 10, y = .105, label = "National unemployment rate: 10%", size = 3.5) 
+  lt_theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.x = element_blank(), legend.position = "top",
+        legend.key=element_blank(), legend.background = element_blank()) +
+  annotate(geom = "text", x = 10, y = .105, label = "National unemployment rate: 10%",
+           size = 4, family = "Cabin") +
+  annotate(geom = "text", x = 13, y = .038, label = "The Dakotas benefited from the shale boom",
+           family = "Cabin", size = 3.5) +
+  annotate(geom = "text", x = 41, y = .131, label = "Michigan's auto industry was hit hard",
+           family = "Cabin", size = 3.5)
 ```
 
 
@@ -183,22 +190,21 @@ ggplot(filter(industry_growth, !is.na(industry_code)),
        aes(x = reorder(industry_name, pct_change), y = pct_change,
                             fill = earncat)) +
   geom_col() +
-  scale_fill_manual(values = c(lt_blue, lt_orange)) +
+  scale_fill_manual(values = c(lt_blue, lt_pink)) +
   geom_text(aes(label = round(pct_change * 100, 1)), hjust = 0.5, 
-            vjust = 1, nudge_y = -0.005) +
+            vjust = 1, nudge_y = -0.005, family = "Cabin") +
   scale_y_continuous(labels = scales::percent) +
   scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 15)) +
-  facet_grid(cols = vars(earncat), scales = "free", space = "free",
-             switch = "x") +
+  facet_grid(cols = vars(earncat), scales = "free", space = "free") +
   geom_hline(aes(yintercept = nonfarm_growth), color = "gray50",
              linetype = "dashed") +
   geom_text(data = ann_text, label = "Growth rate across all industries",
-            hjust = "left", nudge_x = -0.5, nudge_y = 0.005) +
+            hjust = "left", nudge_x = -0.5, nudge_y = 0.005, family = "Cabin") +
   labs(title = "The fastest-growing industries have had lower average earnings",
        subtitle = "Percent change in employment by industry, 2007-2018",
        x = "Industry", y = "Percent change in employment",
        caption = "Source: Bureau of Labor Statistics Current Employment Statistics
-       Note: High-and low-earning categories based on whether an industry's average hourly earnings are above or below \n average hourly earnings for all private jobs.")+
+       Note: High-and low-earning categories based on comparing an industry's average hourly earnings to average hourly earnings for all private jobs.")+
   lt_theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.ticks.x = element_blank(), legend.position = "none",
         panel.grid.major = element_blank(), panel.grid.minor = element_blank())
@@ -214,13 +220,13 @@ load("plot_data/black_white_unemployment_gap.Rdata")
 
 
 ggplot(raceth_unemp_yr, aes(x = year)) +
-  geom_linerange(aes(ymin = white/100, ymax = black/100, color = bw_delta),
-                 size = 2) +
+  geom_linerange(aes(ymin = white/100, ymax = black/100, alpha = bw_delta),
+                 size = 1.75, color = lt_orange) +
   geom_point(aes(y = white/100), color = lt_orange, size = 2) + 
   geom_point(aes(y = black/100), color = lt_orange, size = 2) +
   scale_x_continuous(breaks = seq(1970, 2020, 5)) +
   scale_y_continuous(labels = scales::percent) +
-  scale_color_distiller(direction = 1, palette = "Oranges") +
+  scale_alpha_continuous(name = "Black-white\ngap (pp)") +
   labs(title = "Black unemployment has always been higher than white unemployment
   but the gap is smaller than ever",
        subtitle = "Average annual unemployment rate by race, 1971-2018",
@@ -231,10 +237,10 @@ ggplot(raceth_unemp_yr, aes(x = year)) +
   annotate(geom = "point", x = 1998, y = 0.18, color = "orange") +
   annotate(geom = "point", x = 1998, y = 0.195, color = "orange") +
   annotate(geom = "text", x = 2004.5, y = 0.195, label = "Black unemployment",
-           size = 3.5, family = "Cabin") +
+           size = 4, family = "Cabin") +
   annotate(geom = "text", x = 2004.5, y = 0.18, label = "White unemployment",
-           size = 3.5, family = "Cabin") +
-  lt_theme()
+           size = 4, family = "Cabin") +
+  lt_theme(legend.position = c(0.95, 0.8))
 ```
 
 #### The educational profile of the unemployed is slowly changing
@@ -294,22 +300,24 @@ ggplot(grids, aes(x = x, y = y, fill = reorder(z, order))) +
   scale_x_continuous(breaks = c(2.5, 7.5, 12.5), labels = c(1997, 2007, 2017),
                      limits = c(0, 20)) +
   coord_equal() +
-  labs(title = "Today's unemployed population includes more individuals with at least some college education",
+  labs(title = "Today's unemployed population includes more individuals with at least
+  some college education",
        subtitle = "Unemployed population by educational attainment near three business cycle peaks") +
   annotate(geom = "tile", x = 1, y = 13, fill = "gray50") +
   annotate(geom = "text", x = 4, y = 13, label = "Represents \n100,000 people",
            size = 3, family = "Cabin") +
   annotate(geom = "text", x = 17, y = 1, label = "Less than\nhigh school", 
-           size = 3, family = "Cabin") +
+           size = 3.5, family = "Cabin") +
   annotate(geom = "text", x = 17, y = 4, label = "High school\ngraduate",
-           size = 3, family = "Cabin") +
+           size = 3.5, family = "Cabin") +
   annotate(geom = "text", x = 17, y = 8, label = "Some college or\nassociate's degree",
-           size = 3, family = "Cabin") +
+           size = 3.5, family = "Cabin") +
   annotate(geom = "text", x = 17, y = 11, label = "Bachelor's degree\n or higher", 
-           size = 3, family = "Cabin") +
+           size = 3.5, family = "Cabin") +
   lt_theme(axis.title = element_blank(), axis.text.y = element_blank(),
            legend.position = "none", panel.grid.major = element_blank(),
-           panel.grid.minor = element_blank())
+           panel.grid.minor = element_blank(),
+           axis.text.x = element_text(face = "bold", size = rel(1.25)))
 
 ```
 
@@ -321,16 +329,23 @@ In order to be considered officially unemployed, an individual must be out of wo
 ```{r alternative_measures}
 load("plot_data/different_unemployment_measures.Rdata")
 
+altmeasure_colors <- c("Discouraged" = lt_green, 
+                     "Marginally attached" = lt_pink,
+                     "Part-time for economic reasons" = lt_orange,
+                     "Unemployed" = lt_blue)
+
 ggplot(filter(unemp_annual, year %in% seq(2008, 2018)), 
        aes(x = year, y = value, group = names)) +
   geom_col(aes(fill = names), position = "stack") +
   scale_y_continuous(labels = scales::number) +
-  scale_fill_discrete(name = "") +
+  scale_fill_manual(name = "", values = altmeasure_colors) +
   lt_theme(legend.position = "top", panel.ontop = TRUE, 
            panel.grid.major.x = element_blank(),
-           panel.grid.major.y = element_line(color = "gray85", size = 0.25,
+           panel.grid.major.y = element_line(color = "gray85", size = 0.2,
+                                             linetype = "dotdash"),
+           panel.grid.minor.y = element_line(color = "gray85", size = 0.2,
                                              linetype = "dotted")) +
-  labs(title = "The official unemployment measure only tells part of the story",
+  labs(title = "The official unemployment measure understates the number of people \nworking less than they want",
        subtitle = "Alternative measures of underutilized workers, in thousands, 2008-2018",
        x = "Year", y = "Workers (thousands)",
        caption = "Source: Current Population Survey") 

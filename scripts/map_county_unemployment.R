@@ -33,13 +33,17 @@ cturate_data <- purrr::map(seq(1, 50),
   bind_rows() %>% dplyr::rename(series_id = seriesID)
 
 # determine month of highest unemployments
-cturate <- mutate(cturate_data, stcofips = substr(series_id, 6, 11),
+cturate <- mutate(cturate_data, stcofips = substr(series_id, 6, 10),
                 stfips = substr(stcofips, 1, 2),
                 month = paste0(year, "-", period)) %>% 
   group_by(stcofips) %>%  dplyr::rename(urate = value) %>% 
   mutate(max_urate = max(urate), is_max = ifelse(urate == max_urate, 1, 0))
 
 max_urate <- cturate %>% filter(is_max == 1, stfips != "72")
+
+ggplot(max_urate, aes(x = month, y = max_urate)) +
+  geom_point() +
+  lt_theme()
 
 #===============================================================================#
 # NOW GET GEOMETRY
@@ -50,8 +54,9 @@ countypop <- get_acs(geography = "county", variable = "B01001_001",
   dplyr::rename(stcofips = GEOID, pop = estimate) %>% 
   filter(substr(stcofips, 1, 2) != "72")
 
-mapdata <- full_join(countypop, max_urate, by = "stcofips")
+mapdata <- left_join(countypop, max_urate, by = "stcofips") %>% 
+  filter(as.numeric(substr(stcofips, 1, 2)) == 39)
 
-ggplot(countypop) +
+ggplot(mapdata) +
   geom_sf(aes(fill = pop))
 

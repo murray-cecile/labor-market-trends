@@ -70,7 +70,7 @@ by_quarter <- adj_cturate %>% group_by(stcofips, quarter) %>%
 #===============================================================================#
 
 ctpop <- get_acs(geography = "county", variable = "B01001_001",
-                 geometry = FALSE) %>% 
+                 geometry = TRUE) %>% 
   dplyr::rename(stcofips = GEOID, pop = estimate) %>% 
   filter(!stcofips %in% c("72"))
 
@@ -91,7 +91,7 @@ ggplot(max_urate, aes(x = yq(quarter), y = max_urate/100, alpha = pop)) +
   geom_rect(aes(xmin = yq("2008-Q1"), xmax = yq("2009-Q3"),
                 ymin = 0, ymax = .325),
             fill = "gray85", color = "gray85", alpha = 0.75) +
-  geom_point(color = lt_blue) +
+  geom_point(color = lt_orange) +
   scale_alpha_continuous(name = "Population (log), 2017", trans = "log10",
                          label = scales::number_format(big.mark = ",")) +
   scale_y_continuous(labels = scales::percent) +
@@ -119,7 +119,10 @@ ggplot(max_urate, aes(x = yq(quarter), y = max_urate/100, alpha = pop)) +
 # 
 # mapdata <- left_join(stpop, max_urate, by = "stfips")
 # 
-# ggplot(mapdata) +
-#   geom_sf(aes(fill = quarter)) +
-#   lt_theme(axis.text = element_blank())
+
+max_urate_49 <- filter(max_urate, !substr(stcofips, 1, 2) %in% c("02", "15", "72"))
+
+ggplot(max_urate_49) +
+  geom_sf(aes(fill = max_urate)) +
+  lt_theme(axis.text = element_blank())
 

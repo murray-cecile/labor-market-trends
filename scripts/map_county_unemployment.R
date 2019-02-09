@@ -2,38 +2,59 @@
 # PULL EMPLOYMENT BY COUNTY
 #   
 # Cecile Murray
-# 2019-02-02s
+# 2019-02-09
 #===============================================================================#
 
 library(here)
 source("scripts/setup.R")
 
+library(sf)
 library(tidycensus)
+library(rmapshaper)
 
 #===============================================================================#
-# CONSTRUCT QUERY
+# GET NATIONAL-LEVEL DATA
+#===============================================================================#
+
+cps_codes <- fread("https://download.bls.gov/pub/time.series/ln/ln.series")
+
+# grab code for quarterly unemployment rate
+cps_query <- filter(cps_codes, periodicity_code == "Q",
+                    substr(series_id, 4, 11) == "14000000",
+                    sexs_code == 0)
+
+natl_data <- bls_api(cps_query$series_id, startyear = 2007, endyear = 2018,
+                     registrationKey = blskey, annualaverage = TRUE)  %>% 
+  dplyr::rename(series_id = seriesID) %>%
+  mutate(quarter = paste0(year, "-Q", substr(period, 3, 3))) %>% 
+  select(quarter, value) %>% dplyr::rename(natl_urate = value)
+
+#===============================================================================#
+# GET COUNTY-LEVEL DATA
 #===============================================================================#
 
 # get list of all the state codes
 counties <- fread("https://download.bls.gov/pub/time.series/la/la.area") %>% 
-  filter(area_type_code == "F") 
+  filter(area_type_code == "F") %>% 
+  mutate(stcofips = substr(area_code, 3, 8)) %>% 
+  filter(substr(stcofips, 1, 2) != "72")
 
-# create a list of series IDs
-cturate_query <- matrix(sapply(counties$area_code,
-                                function(x) paste0("LAU", x, "03")),
-                        nrow = nrow(counties) / 50, 50)
-
-# query the API - ONCE, this is slow
-# cturate_data <- purrr::map(seq(1, 50),
+# # COUNTY DATA: query the API - ONCE, this is slow; 63 max size queries
+# cturate_query <- matrix(sapply(counties$area_code,
+#                                function(x) paste0("LAU", x, "03")),
+#                         nrow = ceiling(nrow(counties) / 50), 50)
+# cturate_data <- purrr::map(seq(1, nrow(cturate_query)),
 #                        function(x) bls_api(cturate_query[x, ], startyear = 2007,
 #                                            endyear = 2018, registrationKey = blskey,
-#                                            annualaverage = TRUE)) %>% 
-#   bind_rows() %>% dplyr::rename(series_id = seriesID)
-# 
+#                                            annualaverage = TRUE)) %>%
+#   bind_rows() %>% dplyr::rename(series_id = seriesID) 
+
+
 # save(cturate_data, file = "raw/cturate_data.Rdata")
 # rm(cturate_data)
 
 load("raw/cturate_data.Rdata")
+
 
 # determine month of highest unemployments
 cturate <- mutate(cturate_data, stfips = substr(series_id, 6, 7),
@@ -58,71 +79,67 @@ adj_factor <- cturate %>% filter(period != "M13", year < 2018) %>%
 
 adj_cturate <- cturate %>% filter(period != "M13", year < 2018) %>% 
   left_join(adj_factor, by = "period") %>% 
-  mutate(adj_urate = urate - month_adj)
+  mutate(adj_urate = urate - month_adj) 
+
+#===============================================================================#
+# JOIN WITH NATIONAL DATA
+#===============================================================================#
 
 by_quarter <- adj_cturate %>% group_by(stcofips, quarter) %>%
   summarize(adj_urate = mean(adj_urate)) %>% ungroup() %>% group_by(stcofips) %>% 
-  mutate(max_urate = max(adj_urate),
-         is_max = ifelse(adj_urate == max_urate, 1, 0))
+  left_join(natl_data, by = "quarter") %>% 
+  mutate(above_natl = ifelse(adj_urate > natl_urate, 1, 0),
+         urate_delta = adj_urate - natl_urate,
+         delta_quintile = ntile(urate_delta, 5),
+         delta_ratio = adj_urate / natl_urate)
+
+qt_above <- by_quarter %>% group_by(stcofips) %>% 
+  summarize(qt_over_natl = sum(above_natl)) %>% ungroup() %>% 
+  mutate(above_quintile = ntile(qt_over_natl, 5))
+
+ggplot(by_quarter, aes(x = quarter, y = urate_delta)) +
+  geom_point()
 
 #===============================================================================#
 # PLOT STUFF
 #===============================================================================#
 
 ctpop <- get_acs(geography = "county", variable = "B01001_001",
-                 geometry = TRUE) %>% 
+                 geometry = TRUE, shift_geo = TRUE) %>% 
   dplyr::rename(stcofips = GEOID, pop = estimate) %>% 
-  filter(!stcofips %in% c("72"))
+  filter(!stcofips %in% c("72")) %>% select(-moe) 
 
-# ggplot(ctpop, aes(x = pop)) +
-#   geom_histogram(binwidth = 1000)
+oh <- ctpop %>% filter(substr(stcofips, 1, 2) == "39") %>% 
+  left_join(by_quarter, by = "stcofips") %>% 
+  st_transform(102322)
 
-max_urate <- by_quarter %>% filter(is_max == 1) %>% 
-  left_join(ctpop, by = "stcofips")
-
-rm(cturate_data)
-save.image("plot_data/county_unemployment_scatter.Rdata")
-
-# quarter_breaks <- unlist(Map(function(x, y) paste0(x, "-Q", y),
-#                       rep(seq(2007, 2017), 2),
-#                       rep(c(1, 3), 11)))
-
-ggplot(max_urate, aes(x = yq(quarter), y = max_urate/100, alpha = pop)) +
-  geom_rect(aes(xmin = yq("2008-Q1"), xmax = yq("2009-Q3"),
-                ymin = 0, ymax = .325),
-            fill = "gray85", color = "gray85", alpha = 0.75) +
-  geom_point(color = lt_orange) +
-  scale_alpha_continuous(name = "Population (log), 2017", trans = "log10",
-                         label = scales::number_format(big.mark = ",")) +
-  scale_y_continuous(labels = scales::percent) +
-  scale_x_date(breaks = "1 year", labels = scales::date_format(format = "%Y")) +
-  labs(title = "Many counties experienced their highest unemployment rates after 
-  the technical end of the Great Recession",
-       subtitle = "Maximum quarterly average county unemployment rate, seasonally smoothed, 2007-2017",
-       x = "Quarter", y = "Unemployment Rate",
-       caption = "Source: Bureau of Labor Statistics Local Area Unemployment Statistics
-       Note: Data were seasonally smoothed by subtracting the average monthly difference from annual average.") +
-  lt_theme(panel.grid.major.x = element_line(color = "gray75", linetype = "dotted"),
-           panel.grid.major.y = element_line(color = "gray75", linetype = "dotted"),
-           panel.ontop = TRUE,
-           legend.position = c(0.95, 0.8))
-
-#===============================================================================#
-# NOW GET GEOMETRY
-#===============================================================================#
+oh_above <- ctpop %>% filter(substr(stcofips, 1, 2) == "39") %>% 
+  left_join(qt_above, by = "stcofips") %>% 
+  st_transform(102322)
 
 
-# stpop <- get_acs(geography = "state", variable = "B01001_001",
-#                      geometry = TRUE) %>% 
-#   dplyr::rename(stfips = GEOID, pop = estimate) %>% 
-#   filter(!stfips %in% c("02", "15" ,"72"))
-# 
-# mapdata <- left_join(stpop, max_urate, by = "stfips")
-# 
+ggplot(filter(oh, quarter == "2017-Q4")) +
+  geom_sf(aes(fill = delta_ratio, alpha = pop), color = NULL,
+          size = 0.5) +
+  scale_fill_gradient2(low = lt_yellow, mid = "gray90", high = lt_blue, 
+                       midpoint = 1) +
+  scale_alpha_continuous(trans = "log10", range = c(0.8, 1)) +
+  lt_theme(axis.text = element_blank()) +
+  coord_sf()
 
-max_urate_49 <- filter(max_urate, !substr(stcofips, 1, 2) %in% c("02", "15", "72"))
+# ggplot(oh_above) +
+#   geom_sf(aes(fill = qt_over_natl, alpha = pop)) +
+#   scale_alpha_continuous(trans = "log10", range = c(0.5, 1)) +
+#   lt_theme(axis.text = element_blank()) +
+#   coord_sf()
 
-ggplot(max_urate_49) +
-  geom_sf(aes(fill = max_urate)) +
-  lt_theme(axis.text = element_blank())
+
+natl_map <- ctpop %>% left_join(qt_above, by = "stcofips")  
+
+ggplot(natl_map) +
+  geom_sf(aes(fill = qt_over_natl, alpha = pop), lwd = 0) + 
+  scale_fill_gradient(low = lt_yellow, high = lt_blue) +
+  scale_alpha_continuous(trans = "log10", range = c(0.25, 1)) +
+  lt_theme(axis.text = element_blank()) +
+  coord_sf()
 

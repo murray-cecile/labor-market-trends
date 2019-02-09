@@ -19,6 +19,8 @@ lt_pink <- "#E817A9"
 lt_yellow <- "#FFD816"
 lt_green <- "#17E849"
 
+map_scale <- c("#21beaf", "#1c9f93", "#178278", "#12675e", "#0d4c46")
+
 # Fonts:
 # font_import()
 

@@ -97,11 +97,8 @@ qt_above <- by_quarter %>% group_by(stcofips) %>%
   summarize(qt_over_natl = sum(above_natl)) %>% ungroup() %>% 
   mutate(above_quintile = ntile(qt_over_natl, 5))
 
-ggplot(by_quarter, aes(x = quarter, y = urate_delta)) +
-  geom_point()
-
 #===============================================================================#
-# PLOT STUFF
+# PREPARE SHAPEFILES
 #===============================================================================#
 
 ctpop <- get_acs(geography = "county", variable = "B01001_001",
@@ -109,37 +106,32 @@ ctpop <- get_acs(geography = "county", variable = "B01001_001",
   dplyr::rename(stcofips = GEOID, pop = estimate) %>% 
   filter(!stcofips %in% c("72")) %>% select(-moe) 
 
-oh <- ctpop %>% filter(substr(stcofips, 1, 2) == "39") %>% 
-  left_join(by_quarter, by = "stcofips") %>% 
-  st_transform(102322)
-
-oh_above <- ctpop %>% filter(substr(stcofips, 1, 2) == "39") %>% 
-  left_join(qt_above, by = "stcofips") %>% 
-  st_transform(102322)
-
-
-ggplot(filter(oh, quarter == "2017-Q4")) +
-  geom_sf(aes(fill = delta_ratio, alpha = pop), color = NULL,
-          size = 0.5) +
-  scale_fill_gradient2(low = lt_yellow, mid = "gray90", high = lt_blue, 
-                       midpoint = 1) +
-  scale_alpha_continuous(trans = "log10", range = c(0.8, 1)) +
-  lt_theme(axis.text = element_blank()) +
-  coord_sf()
-
-# ggplot(oh_above) +
-#   geom_sf(aes(fill = qt_over_natl, alpha = pop)) +
-#   scale_alpha_continuous(trans = "log10", range = c(0.5, 1)) +
-#   lt_theme(axis.text = element_blank()) +
-#   coord_sf()
-
-
 natl_map <- ctpop %>% left_join(qt_above, by = "stcofips")  
 
-ggplot(natl_map) +
-  geom_sf(aes(fill = qt_over_natl, alpha = pop), lwd = 0) + 
-  scale_fill_gradient(low = lt_yellow, high = lt_blue) +
-  scale_alpha_continuous(trans = "log10", range = c(0.25, 1)) +
-  lt_theme(axis.text = element_blank()) +
-  coord_sf()
+
+
+#===============================================================================#
+# PLOT STUFF
+#===============================================================================#
+
+
+ggplot() +
+  geom_sf(data = natl_map, aes(fill = qt_over_natl, alpha = pop), lwd = 0) + 
+  geom_sf(data = cbsa, color = "gray40", fill = NA, lwd = .25) +
+  geom_sf(data = anchorage, color = "gray40", fill = NA, lwd = .25) +
+  geom_sf(data = fairbanks, color = "gray40", fill = NA, lwd = .25) +
+  geom_sf(data = honolulu, color = "gray40", fill = NA, lwd = .25) +
+  geom_sf(data = kahului, color = "gray40", fill = NA, lwd = .25) +
+  scale_fill_gradient(low = lt_yellow, high = lt_blue, 
+                      name = "Quarters of high unemployment") +
+  scale_alpha_continuous(trans = "log10", range = c(0.25, 1),
+                         name = "", guide = FALSE) +
+  lt_theme(axis.text = element_blank(), legend.p) +
+  coord_sf() +
+  labs(title = "Metropolitan areas and the central U.S. have had shorter spells of high unemployment",
+       subtitle = "Quarters where the unemployment rate was higher than the
+  nation's by county, 2007-2017",
+       caption = "Source: Bureau of Labor Statistics
+  Note: County unemployment rates were seasonally smoothed.") +
+  geom_annotate
 

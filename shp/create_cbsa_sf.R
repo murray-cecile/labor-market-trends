@@ -6,8 +6,10 @@
 # 2019-02-09
 #===============================================================================#
 
+library(here)
+library(sf)
+library(rgdal)
 
-setwd(here::here())
 
 # read in the CBSA shapefile, transform projection, grab metros
 cbsa <- st_read("shp/cbsa_2017.geojson")  %>%
@@ -19,6 +21,9 @@ setwd("/Users/cecilemurray/Documents/coding/xwalks")
 
 cbsa_xwalk <- data.table::fread("countytoCBSA_stata.csv") %>% 
   filter(metro_micro == "Metropolitan Statistical Area")
+
+setwd(here::here())
+
 
 ak <- cbsa_xwalk %>% filter(st_name == "Alaska") %>% 
   mutate(stcofips = str_pad(as.character(stcofips), width = 5, side = "left",
@@ -40,9 +45,9 @@ kahului <- st_union(hi_cty[hi_cty$stcofips == "15009", ],
                     hi_cty[hi_cty$stcofips == "15005", ])
 honolulu <- hi_cty[hi_cty$stcofips == "15003",]
 
-# all_ak <- get_acs(geography = "state", table = "B01001",
-#                   geometry = TRUE, shift_geo = TRUE) %>% 
-#   filter(GEOID == "02")
+all_ak <- get_acs(geography = "state", table = "B01001",
+                  geometry = TRUE, shift_geo = TRUE) %>%
+  filter(GEOID == "02")
 
 ggplot() +
   geom_sf(data = anchorage, color = "red") +
@@ -52,5 +57,8 @@ ggplot() +
 ggplot() +
   geom_sf(data = honolulu, color = "red") +
   geom_sf(data = kahului, color = "red") 
+
+ggplot(cbsa) +
+  geom_sf()
 
 

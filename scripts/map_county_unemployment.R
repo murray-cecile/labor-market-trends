@@ -10,7 +10,6 @@ source("scripts/setup.R")
 
 library(sf)
 library(tidycensus)
-library(rmapshaper)
 
 #===============================================================================#
 # GET NATIONAL-LEVEL DATA
@@ -108,7 +107,8 @@ ctpop <- get_acs(geography = "county", variable = "B01001_001",
 
 natl_map <- ctpop %>% left_join(qt_above, by = "stcofips")  
 
-
+# states <- get_acs(geography = "state", table = "B01001",
+#                   geometry = TRUE, shift_geo = TRUE)
 
 #===============================================================================#
 # PLOT STUFF
@@ -116,22 +116,27 @@ natl_map <- ctpop %>% left_join(qt_above, by = "stcofips")
 
 
 ggplot() +
+  # geom_sf(data = states, color = "white", fill = NA, lwd = .20) +
   geom_sf(data = natl_map, aes(fill = qt_over_natl, alpha = pop), lwd = 0) + 
-  geom_sf(data = cbsa, color = "gray40", fill = NA, lwd = .25) +
-  geom_sf(data = anchorage, color = "gray40", fill = NA, lwd = .25) +
-  geom_sf(data = fairbanks, color = "gray40", fill = NA, lwd = .25) +
-  geom_sf(data = honolulu, color = "gray40", fill = NA, lwd = .25) +
-  geom_sf(data = kahului, color = "gray40", fill = NA, lwd = .25) +
+  geom_sf(data = cbsa, color = "gray50", fill = NA, lwd = .20) +
+  geom_sf(data = anchorage, color = "gray50", fill = NA, lwd = .20) +
+  geom_sf(data = fairbanks, color = "gray50", fill = NA, lwd = .20) +
+  geom_sf(data = honolulu, color = "gray50", fill = NA, lwd = .20) +
+  geom_sf(data = kahului, color = "gray50", fill = NA, lwd = .20) +
   scale_fill_gradient(low = lt_yellow, high = lt_blue, 
-                      name = "Quarters of high unemployment") +
+                      name = "Quarters of high unemployment",
+                      guide = guide_legend(position = "horizontal")) +
   scale_alpha_continuous(trans = "log10", range = c(0.25, 1),
                          name = "", guide = FALSE) +
-  lt_theme(axis.text = element_blank(), legend.p) +
+  lt_theme(axis.text = element_blank(), legend.position = "top") +
   coord_sf() +
   labs(title = "Metropolitan areas and the central U.S. have had shorter spells of high unemployment",
        subtitle = "Quarters where the unemployment rate was higher than the
   nation's by county, 2007-2017",
+       x = "", y = "",
        caption = "Source: Bureau of Labor Statistics
   Note: County unemployment rates were seasonally smoothed.") +
-  geom_annotate
+  # geom_tile(lat = -90, lon = 26, color = "gray60", fill = NA) +
+  annotate(geom = "text", x = Inf, y = Inf,
+            label = "Metropolitan area", size = 3.5)
 

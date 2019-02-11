@@ -129,7 +129,7 @@ ggplot() +
                       guide = guide_legend(position = "horizontal")) +
   scale_alpha_continuous(trans = "log10", range = c(0.25, 1),
                          name = "", guide = FALSE) +
-  lt_theme(axis.text = element_blank(), legend.position = "top") +
+  lt_map_theme(legend.position = "top") +
   coord_sf() +
   labs(title = "Metropolitan areas and the central U.S. have had shorter spells of high unemployment",
        subtitle = "Quarters where the unemployment rate was higher than the

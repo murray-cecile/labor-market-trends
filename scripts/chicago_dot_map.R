@@ -1,5 +1,5 @@
 #===============================================================================#
-# MAP WAGES IN CALIFORNIA
+# MAP CHICAGO EMPLOYMENT STATUS
 #
 # Cecile Murray
 # 2019-02-09
@@ -29,30 +29,27 @@ tract_emp <- get_acs(geography = "tract", table = "B23025",
     variable == "B23025_006" ~ "af",
     variable == "B23025_007" ~ "nilf"
   )) %>% select(-variable) %>% 
-  filter(emp_status %in% c("emp", "unemp", "nilf")) 
+  filter(emp_status %in% c("emp", "unemp", "nilf")) %>% 
+  st_as_sf()
 
 
 #===============================================================================#
 # MAKE DOTS
 #===============================================================================#
 
-# based on https://github.com/andybega/mireg-blogs/tree/master/us-2016-dot-density
-
-# adapted from http://coleoguy.blogspot.com.ee/2016/04/stochasticprobabilistic-rounding.html
-stochastic_round = function(x){
-  ## extract the decimal portion
-  q = abs(x - trunc(x))
-  
-  ## draw a value 0 or 1 with probability
-  ## based on how close we already are
-  adj = rbinom(n = length(x), size = 1, prob = q)
-  
-  ## make it negative if x is
-  adj <- ifelse(x < 0, adj * -1, adj)
-  
-  ## return our new value
-  trunc(x) + adj
+# credit to Jens von Bergmann for this algo https://github.com/mountainMath/dotdensity/blob/master/R/dot-density.R
+random_round <- function(x) {
+  v=as.integer(x)
+  r=x-v
+  test=runif(length(r), 0.0, 1.0)
+  add=rep(as.integer(0),length(r))
+  add[r>test] <- as.integer(1)
+  value=v+add
+  ifelse(is.na(value) | value<0,0,value)
+  return(value)
 }
+
+# based on https://github.com/andybega/mireg-blogs/tree/master/us-2016-dot-density
 
 # Modified version of sf:::st_sample that combines points by sampled polyon
 st_sample_by_poly <- function(x, size) {
@@ -94,13 +91,12 @@ st_poly_sample_n <- function(x, size) {
   }
 }
 
-tract_emp2 <- tract_emp %>% select(-tract) %>% 
-  spread(emp_status, estimate) %>% 
-  mutate_at(vars(one_of("emp", "nilf", "unemp")), funs(stochastic_round(. / 500))) %>%
-  mutate_at(vars(one_of("emp", "nilf", "unemp")),
-            funs(suppressMessages(st_sample_by_poly(geometry, size = .))))
+tract_emp2 <- tract_emp %>%
+  mutate(n_dots = random_round(estimate / 500)) %>%
+  mutate(dots = suppressMessages(st_sample_by_poly(., size = n_dots)))
 
-tract_emp3 <- tract_emp2 %>% gather("emp_status", "dots")
+tract_emp3 <- tract_emp2 %>% st_drop_geometry() %>%
+  st_set_geometry(tract_emp2$dots) %>% st_as_sf()
 
 #===============================================================================#
 # GET SHAPEFILES
@@ -116,38 +112,20 @@ setwd(here::here())
 # create cook county outline
 cook <- tract_emp %>% filter(emp_status == "emp") %>% st_union() 
 
+# save.image("plot_data/dotmap.Rdata")
+
 ggplot() +
-  # geom_sf(data = cook, fill = NA) +
-  # geom_sf(data = chi_hwy, color = "gray65") +
-  geom_sf(data = tract_emp3, aes(fill = emp_status),
+  geom_sf(data = cook, fill = NA) +
+  geom_sf(data = chi_hwy, color = "gray65") +
+  geom_sf(data = tract_emp3, aes(color = emp_status),
           size = 0.25, alpha = 0.75) +
   scale_color_manual(values = c("emp" = lt_yellow, "unemp" = lt_blue,
-                                "nilf" = "#90BFDE"),
-                     name = "Represents 500 people",
-                     labels = c("Employed", "Not in labor force", "Unemployed"),
-                     guide = guide_legend(override.aes = list(shape = c(15, 15, 15)))) +
+                               "nilf" = "#90BFDE"),
+                    name = "Represents 500 people",
+                    labels = c("Employed", "Not in labor force", "Unemployed")) +
   labs(title = "Unemployment is spatially uneven at the sub-county level too",
-       subtitle = "Labor force status for the population aged 20 and older in Cook County census tractss",
+       subtitle = "Labor force status for the population aged 20 and older in Cook County census tracts",
        caption = "Source: American Community Survey 2013-2017 estimates") +
-  lt_theme(axis.text = element_blank(),
-           legend.position = c(0.9, 0.8))
+  lt_theme(legend.position = c(0.95, 0.85), axis.text = element_blank(),
+           panel.grid = element_blank())
 
-
-ggplot() +
-  # geom_sf(data = cook, fill = NA) +
-  # geom_sf(data = chi_hwy, color = "gray65") +
-  geom_sf(data = st_set_geometry(tract_emp2, tract_emp2$emp),
-          color = lt_yellow, size = 0.25, alpha = 0.75) +
-  geom_sf(data = st_set_geometry(tract_emp2, tract_emp2$unemp),
-          color = lt_blue, size = 0.25, alpha = 0.75) +
-  geom_sf(data = st_set_geometry(tract_emp2, tract_emp2$nilf),
-          color = "#90BFDE", size = 0.25, alpha = 0.75) +
-  scale_color_manual(values = c("emp" = lt_yellow, "unemp" = lt_blue,
-                                "nilf" = "#90BFDE"),
-                     name = "Represents 500 people",
-                     labels = c("Employed", "Not in labor force", "Unemployed")) +
-  labs(title = "Unemployment is spatially uneven at the sub-county level too",
-       subtitle = "Labor force status for the population aged 20 and older in Cook County census tractss",
-       caption = "Source: American Community Survey 2013-2017 estimates") +
-  lt_theme(axis.text = element_blank(),
-           legend.position = c(0.9, 0.8))

@@ -123,6 +123,7 @@ ggplot() +
   geom_sf(data = fairbanks, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = honolulu, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = kahului, color = "gray50", fill = NA, lwd = .20) +
+  scale_color_manual(name = "Metro areas") +
   scale_fill_gradient(low = lt_yellow, high = lt_blue, 
                       name = "Quarters of high unemployment",
                       guide = guide_legend(position = "horizontal")) +
@@ -133,10 +134,9 @@ ggplot() +
   labs(title = "Metropolitan areas and the central U.S. have had shorter spells of high unemployment",
        subtitle = "Quarters where the unemployment rate was higher than the
   nation's by county, 2007-2017",
-       x = "", y = "",
        caption = "Source: Bureau of Labor Statistics
   Note: County unemployment rates were seasonally smoothed.") +
-  # geom_tile(lat = -90, lon = 26, color = "gray60", fill = NA) +
-  annotate(geom = "text", x = Inf, y = Inf,
+  annotate(geom = "line", -Inf, Inf, color = "gray60") +
+  annotate(geom = "text", -Inf, Inf,
             label = "Metropolitan area", size = 3.5)
 

@@ -19,8 +19,6 @@ lt_pink <- "#E817A9"
 lt_yellow <- "#FFD816"
 lt_green <- "#17E849"
 
-map_scale <- c("#21beaf", "#1c9f93", "#178278", "#12675e", "#0d4c46")
-
 # Fonts:
 # font_import()
 
@@ -38,7 +36,25 @@ lt_theme <- function (...) {
   legend.background = element_blank(),
   legend.key = element_blank()) +
   theme(...)
+  
 }
+
+lt_map_theme <- function (...) {
+  theme(text = element_text(family = "Cabin Medium"),
+        plot.title = element_text(size = rel(1.25), face = "bold"),
+        plot.subtitle = element_text(family = "Cabin"),
+        plot.caption = element_text(family = "Cabin", face = "italic"),
+        panel.background = element_rect(fill = NA), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        legend.background = element_blank(),
+        legend.key = element_blank()) +
+    theme(...)
+  
+}
+
 
 # ggplot(countypop, aes(x = pop, y = as.numeric(stcofips))) +
 #   geom_point() +

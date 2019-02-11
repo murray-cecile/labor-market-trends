@@ -17,21 +17,6 @@ cbsa <- st_read("shp/cbsa_2017.geojson")  %>%
   filter(LSAD == "M1", !str_detect(NAME, "PR"),
          !str_detect(NAME, "AK"), !str_detect(NAME, "HI"))
 
-setwd("/Users/cecilemurray/Documents/coding/xwalks")
-
-cbsa_xwalk <- data.table::fread("countytoCBSA_stata.csv") %>% 
-  filter(metro_micro == "Metropolitan Statistical Area")
-
-setwd(here::here())
-
-
-ak <- cbsa_xwalk %>% filter(st_name == "Alaska") %>% 
-  mutate(stcofips = str_pad(as.character(stcofips), width = 5, side = "left",
-                            pad = "0")) %>% select(stcofips)
-hi <- cbsa_xwalk %>% filter(st_name == "Hawaii") %>% 
-  mutate(stcofips = str_pad(as.character(stcofips), width = 5, side = "left",
-                            pad = "0")) %>% select(stcofips)
-
 # grab relevant counties from AK and HI
 ak_cty <- filter(ctpop, substr(stcofips, 1, 2) == "02") %>% 
   filter(stcofips %in% (ak$stcofips)) 
@@ -49,16 +34,16 @@ all_ak <- get_acs(geography = "state", table = "B01001",
                   geometry = TRUE, shift_geo = TRUE) %>%
   filter(GEOID == "02")
 
-ggplot() +
-  geom_sf(data = anchorage, color = "red") +
-  geom_sf(data = fairbanks, color = "red") +
-  geom_sf(data = all_ak, fill = NA)
-
-ggplot() +
-  geom_sf(data = honolulu, color = "red") +
-  geom_sf(data = kahului, color = "red") 
-
-ggplot(cbsa) +
-  geom_sf()
-
-
+# ggplot() +
+#   geom_sf(data = anchorage, color = "red") +
+#   geom_sf(data = fairbanks, color = "red") +
+#   geom_sf(data = all_ak, fill = NA)
+# 
+# ggplot() +
+#   geom_sf(data = honolulu, color = "red") +
+#   geom_sf(data = kahului, color = "red") 
+# 
+# ggplot(cbsa) +
+#   geom_sf()
+# 
+# 

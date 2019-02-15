@@ -20,6 +20,7 @@ libs <- c("tidyverse", "magrittr", "stringr", "readr", "data.table", "janitor",
           "blscrapeR", "lubridate", "here", "ggrepel", "censusapi", "sf")
 lapply(libs, library, character.only=TRUE)
 suppressMessages(library(tidycensus))
+suppressMessages(library(sf))
 
 blskey <- Sys.getenv("BLS_KEY")
 
@@ -32,7 +33,7 @@ source("scripts/set_theme.R")
 
 #### How did the recession affect different industries?
 
-One of the immediate causes of the recession was a crash in the U.S. housing and financial sectors due to mass defaults on subprime home mortgages that had been collateralized and sold as "safe" assets. The economic pain soon spread well beyond these two industries, but there was substantial variation in how different industries experience the recession and how long they took to recover. The chart below illustrates that the construction sector was hit much harder than most, while education and health services continued to grow jobs even as the nation overall shed them. Meanwhile, mining and logging followed an entirely different trajectory - likely in response to the shale boom. 
+One of the immediate causes of the recession was a crash in the U.S. housing and financial sectors due to mass defaults on sub-prime home mortgages that had been collateralized and sold as "safe" assets. The economic pain soon spread well beyond these two industries, but there was substantial variation in how different industries experience the recession and how long they took to recover. The chart below illustrates that the construction sector was hit much harder than most, while education and health services continued to grow jobs even as the nation overall shed them. Meanwhile, mining and logging followed an entirely different trajectory - likely in response to the shale boom. 
 
 ```{r industry_data_prep, include=FALSE, echo=FALSE}
 #===============================================================================#
@@ -104,14 +105,15 @@ ggplot(index_naics2, aes(x = date, y = index_jobs * 100, group = industry_name,
   labs(title = "Education and health services boomed while construction busted \n and mining and logging fluctuated",
        subtitle = "Employment by industry, indexed to January 2007",
        x = "Year", y = "Indexed employment (Jan. 2007 = 100)",
-       caption = "Source: Bureau of Labor Statistics Current Employment Statistics")
+       caption = "Source: Bureau of Labor Statistics Current Employment Statistics
+       Note: Indexed employment essentially measures percentage change in employment levels, allowing comparison of industries of differing size size")
 
 ```
 
 
 #### Which industries have grown the fastest since the recession?
 
-It wasn't until April of 2014 that the economy returned to its pre-recession employment level. But I wanted to know whether the recession might have caused changes in the economy's composition; that is, what kind of jobs have we grown? The chart below shows that job growth was uneven across sectors. Worringly, employment in sectors where average hourly earnings are below the figure for all private jobs grew faster than employment in higher-earnings sectors. For example, average earnings in the fast-growing leisure and hospitality sector were \$16 per hour, compared with close to \$30 per hour in higher-paying but still-recovering construction sector. In fact, the only higher-earning industry that saw a larger percentage increase than the economy as a whole was professional services. 
+It wasn't until April of 2014 that the economy returned to its pre-recession employment level. But I wanted to know whether the recession might have caused changes in the economy's composition; that is, what kind of jobs have we grown? The chart below shows that job growth was uneven across sectors. Worryingly, employment in sectors where average hourly earnings are below the figure for all private jobs grew faster than employment in higher-earnings sectors. For example, average earnings in the fast-growing leisure and hospitality sector were \$16 per hour, compared with close to \$30 per hour in higher-paying but still-recovering construction sector. In fact, the only higher-earning industry that saw a larger percentage increase than the economy as a whole was professional services. 
 
 ```{r earnings_emp_growth_prep, include = FALSE, echo = FALSE}
 # what were the biggest industries just before the recession?
@@ -131,13 +133,14 @@ industry_growth <- industry_shares %>% select(month, industry_name, value) %>%
   spread(month, value) %>% clean_names() %>% 
   mutate(pct_change = x2018_08 / x2007_08 - 1) %>% 
   left_join(earn_cats, by = "industry_name") %>% 
-  mutate(industry_name == case_when(
+  mutate(industry_name = case_when(
     industry_name == 'Mining and logging' ~ "Mining & logging",
     industry_name == "Transportation and Warehousing" ~ "Transportation & warehousing",
     industry_name == "Financial activities" ~ "Financial activities",
     industry_name == "Professional and business services" ~ "Professional & business services",
     industry_name == "Education and health services" ~ "Education & health services",
-    industry_name == "Leisure and hospitality" ~ "Leisure & hospitality"
+    industry_name == "Leisure and hospitality" ~ "Leisure & hospitality",
+    TRUE ~ industry_name
     ))
 
 nonfarm_growth <- industry_growth$pct_change[industry_growth$industry_name=="Total nonfarm"]
@@ -154,8 +157,9 @@ source("scripts/set_theme.R")
 # TO DO: think about how to encode industry size
 
 ggplot(filter(industry_growth, !is.na(industry_code)),
-       aes(x = reorder(industry_name, pct_change), y = pct_change,
-                            fill = earncat)) +
+       aes(x = reorder(industry_name, pct_change),
+           y = pct_change,
+           fill = earncat)) +
   geom_col() +
   scale_fill_manual(values = c(lt_blue, lt_pink)) +
   geom_text(aes(label = round(pct_change * 100, 1)), hjust = 0.5, 
@@ -163,12 +167,12 @@ ggplot(filter(industry_growth, !is.na(industry_code)),
   scale_y_continuous(labels = scales::percent) +
   scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 15)) +
   facet_grid(cols = vars(earncat), scales = "free", space = "free") +
-  geom_hline(aes(yintercept = nonfarm_growth), color = "gray50",
+  geom_hline(aes(yintercept = nonfarm_growth), color = "gray60",
              linetype = "dashed") +
-  geom_text(data = ann_text, label = "Growth rate across all industries",
+  geom_text(data = ann_text, label = "Growth rate (%) across all industries",
             hjust = "left", nudge_x = -0.5, nudge_y = 0.005, family = "Cabin") +
   labs(title = "The fastest-growing industries have had lower average earnings",
-       subtitle = "Percent change in employment by industry, 2007-2018",
+       subtitle = "Growth rate (%) in employment by industry, 2007-2018",
        x = "Industry", y = "Percent change in employment",
        caption = "Source: Bureau of Labor Statistics Current Employment Statistics
        Note: High-and low-earning categories based on comparing an industry's average hourly earnings to average hourly earnings for all private jobs.")+
@@ -604,7 +608,7 @@ ggplot(grids, aes(x = x, y = y, fill = reorder(z, order))) +
 
 #### The labor market might have more slack than first meets the eye
 
-In order to be considered officially unemployed, an individual must be out of work, available to work, and have actively looked for work within the last month. However, this measure understates the total slack in the labor market because it does not account for "marginally attached" workers, who don't have work and want it but have only searched for a job within the last year, or "discouraged" workers, who want a job but have given up searching. In addition, the official unemployment number does not include people who are working part-time but would prefer full-time work. The chart below compares the offical measure to these alternative measures over time, showing that the officially unemployed only represent about half of a larger group of individuals who want a full-time job and don't have one.  
+In order to be considered officially unemployed, an individual must be out of work, available to work, and have actively looked for work within the last month. However, this measure understates the total slack in the labor market because it does not account for "marginally attached" workers, who don't have work and want it but have only searched for a job within the last year, or "discouraged" workers, who want a job but have given up searching. In addition, the official unemployment number does not include people who are working part-time but would prefer full-time work. The chart below compares the official measure to these alternative measures over time, showing that the officially unemployed only represent about half of a larger group of individuals who want a full-time job and don't have one.  
 
 ```{r alternative_measures}
 load("plot_data/different_unemployment_measures.Rdata")

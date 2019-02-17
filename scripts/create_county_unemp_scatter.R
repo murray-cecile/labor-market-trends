@@ -107,22 +107,49 @@ ggplot(max_urate, aes(x = yq(quarter), y = max_urate/100, alpha = pop)) +
            panel.ontop = TRUE,
            legend.position = c(0.95, 0.8))
 
-#===============================================================================#
-# NOW GET GEOMETRY
-#===============================================================================#
+
+max_urate %<>% mutate(popcat = log10(pop))
+max_urate %>% ggplot() + geom_histogram(aes(x = popcat), bindwidth = 1)
+
+max_urate %<>% mutate(popcat = case_when(
+  pop < 50000 ~ "1",
+  pop < 100000 ~ "2",
+  pop < 1000000 ~ "3",
+  pop < 10000000 ~ "4"
+))
 
 
-# stpop <- get_acs(geography = "state", variable = "B01001_001",
-#                      geometry = TRUE) %>% 
-#   dplyr::rename(stfips = GEOID, pop = estimate) %>% 
-#   filter(!stfips %in% c("02", "15" ,"72"))
-# 
-# mapdata <- left_join(stpop, max_urate, by = "stfips")
-# 
+ggplot(max_urate, aes(x = yq(quarter), y = max_urate/100, color = popcat,
+                      alpha = pop)) +
+  geom_rect(aes(xmin = yq("2008-Q1"), xmax = yq("2009-Q3"),
+                ymin = 0, ymax = .325),
+            fill = "gray85", color = "gray85", alpha = 0.75) +
+  geom_jitter() +
+  scale_color_manual(values = c("1" = lt_blue, "2" = lt_green, "3" = lt_orange, "4" = lt_pink)) +
+  scale_alpha_continuous(name = "Population (log),\n2017", trans = "log10",
+                         label = scales::number_format(big.mark = ",")) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_x_date(breaks = "1 year", labels = scales::date_format(format = "%Y")) +
+  labs(title = "Many counties experienced their highest unemployment rates after 
+       the technical end of the Great Recession",
+       subtitle = "Maximum quarterly average county unemployment rate, seasonally smoothed, 2007-2017",
+       x = "Quarter", y = "Unemployment Rate",
+       caption = "Source: Bureau of Labor Statistics Local Area Unemployment Statistics
+       Note: Data were seasonally smoothed by subtracting the average monthly difference from annual average.") +
+  lt_theme(panel.grid.major.x = element_line(color = "gray75", linetype = "dotted"),
+           panel.grid.major.y = element_line(color = "gray75", linetype = "dotted"),
+           panel.ontop = TRUE,
+           legend.position = c(0.9, 0.75)) 
 
-max_urate_49 <- filter(max_urate, !substr(stcofips, 1, 2) %in% c("02", "15", "72"))
+ggplot(max_urate) +
+  geom_rect(aes(xmin = yq("2008-Q1"), xmax = yq("2009-Q3"),
+                ymin = 0, ymax = .325),
+            fill = "gray85", color = "gray85", alpha = 0.75) +
+  geom_hex(aes(x = yq(quarter), y = max_urate/100, 
+                           fill = ..ndensity..)) +
+  lt_theme()
 
-ggplot(max_urate_49) +
-  geom_sf(aes(fill = max_urate)) +
-  lt_theme(axis.text = element_blank())
+ggplot(max_urate, aes(x = yq(quarter), y = max_urate/100)) +
+  geom_tile(aes(fill = popcat)) 
+  
 

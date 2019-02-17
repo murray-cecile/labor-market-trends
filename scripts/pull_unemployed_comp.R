@@ -36,7 +36,7 @@ raw_data <- map2(year_intervals[1, ] , year_intervals[2, ],
   dplyr::rename(series_id = seriesID) %>%
   mutate(month = paste0(year, "-", period))
 
-unemp_annual <- raw_data %>% filter(period == "M13") %>% 
+unemp_monthly <- raw_data %>% filter(period != "M13") %>% 
   mutate(names = case_when(
     series_id == "LNU03000000" ~ "Unemployed",
     series_id == "LNU05026645" ~ "Discouraged",
@@ -50,10 +50,32 @@ unemp_annual <- raw_data %>% filter(period == "M13") %>%
     names == "Part-time for economic reasons" ~ 4
   )) %>% ungroup()
 
-annual_totals <- unemp_annual %>% select(year, value) %>% 
-  group_by(year) %>% summarize(total = sum(value)) %>% filter(year > 1993) 
+monthly_totals <- unemp_monthly %>% select(month, value) %>% 
+  group_by(month) %>% summarize(total = sum(value)) #%>% filter(year > 1993) 
 
-unemp_annual %<>% left_join(annual_totals, by = "year")
+unemp_monthly %<>% left_join(monthly_totals, by = "year")
+
+#===============================================================================#
+# SMOOTH SEASONAL VARIATION
+#===============================================================================#
+
+annual <- raw_data %>% filter(period == "M13") %>% dplyr::rename(ann_value = value) %>% 
+  select(year, series_id, ann_value) %>% 
+  mutate(names = case_when(
+    series_id == "LNU03000000" ~ "Unemployed",
+    series_id == "LNU05026645" ~ "Discouraged",
+    series_id == "LNU05026642" ~ "Marginally attached",
+    series_id == "LNU02032194"  ~ "Part-time for economic reasons"
+  ))
+
+adj_factor <- unemp_monthly %>% 
+  left_join(annual, by = c("year", "names")) %>% 
+  mutate(ann_delta = value - ann_value) %>% 
+  group_by(period, names) %>% summarize(month_adj = mean(ann_delta))
+
+adj_levels <- unemp_monthly  %>% 
+  left_join(adj_factor, by = c("period", "names")) %>% 
+  mutate(adj_value = value - month_adj) 
 
 # save.image("plot_data/different_unemployment_measures.Rdata")
 
@@ -61,15 +83,25 @@ unemp_annual %<>% left_join(annual_totals, by = "year")
 # MAKE A STACKED BAR
 #===============================================================================#
 
-ggplot(filter(unemp_annual, year %in% seq(2008, 2018)), 
-       aes(x = year, y = value, group = names)) +
-  geom_col(aes(fill = names), position = "stack") +
+underutilized <- adj_levels %>% filter(year > 1993) %>% 
+  mutate(month_date = lubridate::ymd(paste0(str_remove(month, "M"), "-01"))) 
+
+ggplot(underutilized, aes(x = month_date, y = adj_value / 1000, group = names)) +
+  geom_area(aes(fill = names)) +
+  scale_x_date(date_breaks = "2 year", date_labels = "%Y",
+               limits = c(min(underutilized$month_date), max(underutilized$month_date))) +
   scale_y_continuous(labels = scales::number) +
-  theme(legend.position = "top") +
-  labs(title = "The official unemployment levels only tell part of the story",
-       subtitle = "Alternative measures of underutilized workers, in thousands, 2008-2018",
-       x = "Year", y = "Workers (thousands)",
-       caption = "Source: Current Population Survey") 
+  scale_fill_manual(values = c("Discouraged" = lt_green, 
+                               "Marginally attached" = lt_pink,
+                               "Part-time for economic reasons" = lt_orange,
+                               "Unemployed" = lt_blue),
+                    name = "") +
+  labs(title = "The official unemployment measure doesn't count millions of workers",
+       subtitle = "Alternative measures of underutilized workers, in millions, 1994-2018",
+       x = "Year", y = "Workers (millions)",
+       caption = "Source: Current Population Survey") +
+  lt_theme(legend.position = c(0.23, 0.85),
+           axis.text.x = element_text(angle = 45))
 
 #===============================================================================#
 # WAFFLE, FROM SCRATCH

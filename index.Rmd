@@ -4,8 +4,10 @@ author: "Cecile Murray"
 date: "February 2019"
 output: 
   html_document:
+    toc: true
+    toc_depth: 2
     code_folding: hide
-    fig.width: 8
+    fig.width: 16
     fig.height: 11
 ---
 
@@ -105,8 +107,7 @@ ggplot(index_naics2, aes(x = date, y = index_jobs * 100, group = industry_name,
   labs(title = "Education and health services boomed while construction busted \n and mining and logging fluctuated",
        subtitle = "Employment by industry, indexed to January 2007",
        x = "Year", y = "Indexed employment (Jan. 2007 = 100)",
-       caption = "Source: Bureau of Labor Statistics Current Employment Statistics
-       Note: Indexed employment essentially measures percentage change in employment levels, allowing comparison of industries of differing size size")
+       caption = "Source: Bureau of Labor Statistics Current Employment Statistics")
 
 ```
 
@@ -314,6 +315,32 @@ qt_above <- adj_cturate %>% group_by(stcofips, quarter) %>%
 
 natl_map <- ctpop %>% left_join(qt_above, by = "stcofips")  
 
+
+
+# construct a bivariate color matrix:
+# I want it to run from lt_yellow to lt_blue (4 categories),
+# and from low to high intensity (3 categories)
+color_matrix <- data.frame("colors" = c("#FFD81680", "#FFD816BF", "#FFD816FF",
+                                        "#BFA21080", "#BFA210BF", "#BFA210FF",
+                                        "#3C657E80", "#3C657EBF", "#3C657EFF",
+                                        "#217FBE80", "#217FBEBF", "#217FBEFF"),
+                           "xaxis" = rep(c("A", "B", "C"), 4),
+                           "yaxis" = matrix(sapply(seq(1, 4), function(x) rep(x, 3)), ncol = 1)) %>% 
+  mutate(cat = paste0(yaxis, xaxis))
+
+map_colors <- setNames(color_matrix$colors, color_matrix$cat)
+
+map_legend <- ggplot(color_matrix, aes(x = xaxis, y = yaxis)) +
+  geom_tile(fill = color_matrix$colors, color = "gray50") +
+  scale_x_discrete(labels = c("Under 100,000", "100,000 to 1,000,000", "1M or more")) +
+  scale_y_continuous(labels = c("0", "1-19", "20-39", "40+"),
+                     breaks = seq(1, 4)) +
+  labs(title = "Quarters of high unemployment by population", 
+       x = "Population", y = "Quarters of high unemployment") +
+  lt_theme(panel.grid.major = element_blank(),
+           axis.text = element_text(size = rel(1.1)))
+
+# create the map itself
 ggplot() +
   geom_sf(data = natl_map, aes(fill = qt_over_natl, alpha = pop), lwd = 0) + 
   geom_sf(data = cbsa, color = "gray50", fill = NA, lwd = .20) +
@@ -444,20 +471,20 @@ load("plot_data/dotmap.Rdata")
 
 # TO DO: FIGURE OUT LEGEND
 
-ggplot() +
-  geom_sf(data = cook, fill = NA) +
-  geom_sf(data = chi_hwy, color = "gray65") +
-  geom_sf(data = tract_emp3, aes(color = emp_status),
-          size = 0.25, alpha = 0.75) +
-  scale_color_manual(values = c("emp" = lt_yellow, "unemp" = lt_blue,
-                               "nilf" = "#90BFDE"),
-                    name = "Represents 500 people",
-                    labels = c("Employed", "Not in labor force", "Unemployed")) +
-  labs(title = "Unemployment is spatially uneven at the sub-county level too",
-       subtitle = "Labor force status for the population aged 20 and older in Cook County",
-       caption = "Source: American Community Survey 2013-2017 tract-level estimates") +
-  lt_theme(legend.position = c(0.95, 0.85), axis.text = element_blank(),
-           panel.grid = element_blank())
+# ggplot() +
+#   geom_sf(data = cook, fill = NA) +
+#   geom_sf(data = chi_hwy, color = "gray65") +
+#   geom_sf(data = tract_emp3, aes(color = emp_status),
+#           size = 0.25, alpha = 0.75) +
+#   scale_color_manual(values = c("emp" = lt_yellow, "unemp" = lt_blue,
+#                                "nilf" = "#90BFDE"),
+#                     name = "Represents 500 people",
+#                     labels = c("Employed", "Not in labor force", "Unemployed")) +
+#   labs(title = "Unemployment is spatially uneven at the sub-county level too",
+#        subtitle = "Labor force status for the population aged 20 and older in Cook County",
+#        caption = "Source: American Community Survey 2013-2017 tract-level estimates") +
+#   lt_theme(legend.position = c(0.95, 0.85), axis.text = element_blank(),
+#            panel.grid = element_blank())
 
 
 ```
@@ -586,7 +613,8 @@ ggplot(grids, aes(x = x, y = y, fill = reorder(z, order))) +
   coord_equal() +
   labs(title = "Today's unemployed population includes more individuals with at least
   some college education",
-       subtitle = "Unemployed population by educational attainment near three business cycle peaks") +
+       subtitle = "Unemployed population by educational attainment near three business cycle peaks",
+  caption = "Source: Bureau of Labor Statistics Current Population Survey") +
   annotate(geom = "tile", x = 1, y = 13, fill = "gray50") +
   annotate(geom = "text", x = 4, y = 13, label = "Represents \n100,000 people",
            size = 3, family = "Cabin") +
@@ -643,7 +671,7 @@ unemp_monthly <- raw_data %>% filter(period != "M13") %>%
 monthly_totals <- unemp_monthly %>% select(month, value) %>% 
   group_by(month) %>% summarize(total = sum(value)) #%>% filter(year > 1993) 
 
-unemp_monthly %<>% left_join(monthly_totals, by = "year")
+unemp_monthly %<>% left_join(monthly_totals, by = "month")
 
 #===============================================================================#
 # SMOOTH SEASONAL VARIATION

@@ -7,8 +7,7 @@
 #===============================================================================#
 
 libs <- c("tidyverse", "magrittr", "stringr", "readr", "data.table", "janitor",
-          "blscrapeR", "lubridate", "here", "ggrepel", "censusapi", "treemapify", 
-          "ggmosaic")
+          "blscrapeR", "lubridate", "here", "ggrepel", "censusapi",  "ggmosaic")
 lapply(libs, library, character.only=TRUE)
 
 blskey <- Sys.getenv("BLS_KEY")

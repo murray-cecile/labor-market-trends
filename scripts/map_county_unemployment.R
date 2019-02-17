@@ -105,7 +105,7 @@ ctpop <- get_acs(geography = "county", variable = "B01001_001",
   dplyr::rename(stcofips = GEOID, pop = estimate) %>% 
   filter(!stcofips %in% c("72")) %>% select(-moe) 
 
-natl_map <- ctpop %>% left_join(qt_above, by = "stcofips") %>% 
+natl_map <- ctpop %>% inner_join(qt_above, by = "stcofips") %>% 
   mutate(qt_cat = case_when(
     qt_over_natl == 0 ~ 1,
     qt_over_natl < 20 ~ 2,
@@ -141,39 +141,9 @@ qt_above %>% left_join(cbsa_xwalk2, by = "stcofips") %>%
   ggplot(aes(x = in_metro, y = qt_over_natl)) +
   geom_violin()
 
-
-ggplot() +
-  geom_sf(data = filter(natl_map, !substr(stcofips, 1, 2) %in% c("02", "15")), 
-          aes(fill = color_cat), lwd = 0) + 
-  scale_fill_manual(values = c("1A" = "#FFD81680", "1B" = "#FFD816BF", "1C" = "#FFD816FF",
-                               "2A" = "#BFA21080", "2B" = "#BFA210BF", "2C" = "#BFA210FF",
-                               "3A" = "#3C657E80", "3B" = "#3C657EBF", "3C" = "#3C657EFF",
-                               "4A" = "#217FBE80", "4B" = "#217FBEBF", "4C" = "#217FBEFF"), 
-                    name = "Quarters of high unemployment") +
-  # scale_fill_manual(values = c("1" = lt_yellow, "2" = "#FFE16F",
-  #                              "3" = "#4F98C9", "4" = lt_blue), 
-  #                   name = "Quarters of high unemployment",
-  #                   guide = guide_legend(position = "horizontal")) +
-  # scale_fill_gradient(low = lt_yellow, high = lt_blue, 
-  #                     name = "Quarters of high unemployment",
-  #                     breaks = seq(1, 4),
-  #                     guide = guide_legend(position = "horizontal")) +
-  # scale_alpha_continuous(trans = "log10", range = c(0.25, 1),
-  #                        name = "") +
-  lt_theme(legend.position = "top", axis.text = element_blank()) +
-  coord_sf() +
-  labs(title = "The central U.S. and most metropolitan areas have had shorter spells of high unemployment",
-       subtitle = "Quarters where the unemployment rate was higher than the nation's by county, 2007-2017",
-       caption = "Source: Bureau of Labor Statistics
-       Note: County unemployment rates were seasonally smoothed.") +
-  annotate(geom = "text", 1250000, -1250000, label="hello!", color = "red") #+
-  # annotate(geom = "text", -Inf, Inf,
-  #           label = "Metropolitan area", size = 3.5)
   
-  
-
 ggplot() +
-  geom_sf(data = natl_map, aes(fill = qt_over_natl, alpha = pop), lwd = 0) + 
+  geom_sf(data = natl_map, aes(fill = color_cat), lwd = 0) + 
   geom_sf(data = cbsa, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = anchorage, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = fairbanks, color = "gray50", fill = NA, lwd = .20) +
@@ -181,19 +151,18 @@ ggplot() +
   geom_sf(data = kahului, color = "gray50", fill = NA, lwd = .20) +
   scale_color_manual(name = "Metro areas", 
                      guide = "legend") +
-  scale_fill_gradient(low = lt_yellow, high = lt_blue, 
-                      name = "Quarters of high unemployment",
-                      guide = guide_legend(position = "horizontal")) +
-  scale_alpha_continuous(trans = "log10", range = c(0.25, 1),
-                         name = "", guide = FALSE) +
-  lt_map_theme(legend.position = "top") +
+  scale_fill_manual(values = c("1A" = "#FFD81680", "1B" = "#FFD816BF", "1C" = "#FFD816FF",
+                               "2A" = "#BFA21080", "2B" = "#BFA210BF", "2C" = "#BFA210FF",
+                               "3A" = "#217FBE80", "3B" = "#217FBEBF", "3C" = "#217FBEFF",
+                               "4A" = "#3C657E80", "4B" = "#3C657EBF", "4C" = "#3C657EFF"), 
+                    name = "Quarters of high unemployment") +
   coord_sf() +
-  labs(title = "Metropolitan areas and the central U.S. have had shorter spells of high unemployment",
-       subtitle = "Quarters where the unemployment rate was higher than the
-  nation's by county, 2007-2017",
+  labs(title = "The central U.S. and most metropolitan areas have had shorter spells of high unemployment",
+       subtitle = "Quarters where the unemployment rate was higher than the nation's by county, 2007-2017",
        caption = "Source: Bureau of Labor Statistics
-  # Note: County unemployment rates were seasonally smoothed.") #+
-  # annotate(geom = "line", -Inf, Inf, color = "gray60") +
-  # annotate(geom = "text", -Inf, Inf,
-  #           label = "Metropolitan area", size = 3.5)
+       Note: County unemployment rates were seasonally smoothed.") +
+  annotate(geom = "text", 1250000, -1800000, label="Metropolitan areas") +
+  # annotate(geom = "path", 1250000, -1810000, color = "gray50") +
+  lt_theme(legend.position = "bottom", axis.text = element_text(color = "white"))
+
 

@@ -18,14 +18,12 @@ cbsa <- st_read("shp/cbsa_2017.geojson")  %>%
          !str_detect(NAME, "AK"), !str_detect(NAME, "HI"))
 
 # grab relevant counties from AK and HI
-ak_cty <- filter(ctpop, substr(stcofips, 1, 2) == "02") %>% 
-  filter(stcofips %in% (ak$stcofips)) 
+ak_cty <- filter(ctpop, substr(stcofips, 1, 2) == "02") 
 anchorage <- st_union(ak_cty[ak_cty$stcofips=="02020",],
                         ak_cty[ak_cty$stcofips=="02170",])
 fairbanks <- ak_cty[ak_cty$stcofips == "02090", ]
 
-hi_cty <- filter(ctpop, substr(stcofips, 1, 2) == "15") %>% 
-  filter(stcofips %in% (hi$stcofips)) 
+hi_cty <- filter(ctpop, substr(stcofips, 1, 2) == "15") 
 kahului <- st_union(hi_cty[hi_cty$stcofips == "15009", ],
                     hi_cty[hi_cty$stcofips == "15005", ])
 honolulu <- hi_cty[hi_cty$stcofips == "15003",]
@@ -33,6 +31,8 @@ honolulu <- hi_cty[hi_cty$stcofips == "15003",]
 all_ak <- get_acs(geography = "state", table = "B01001",
                   geometry = TRUE, shift_geo = TRUE) %>%
   filter(GEOID == "02")
+
+cbsa100 <- cbsa %>% filter(GEOID %in% cbsa_xwalk$cbsa[cbsa_xwalk$top100 == 1])
 
 # ggplot() +
 #   geom_sf(data = anchorage, color = "red") +

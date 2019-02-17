@@ -689,7 +689,7 @@ ggplot(underutilized, aes(x = month_date, y = adj_value / 1000, group = names)) 
   labs(title = "The official unemployment measure doesn't count millions of workers",
        subtitle = "Alternative measures of underutilized workers, in millions, 1994-2018",
        x = "Year", y = "Workers (millions)",
-       caption = "Source: Current Population Survey") +
+       caption = "Source: Bureau of Labor Statistics Current Population Survey") +
   lt_theme(legend.position = c(0.23, 0.85),
            axis.text.x = element_text(angle = 45))
 ```

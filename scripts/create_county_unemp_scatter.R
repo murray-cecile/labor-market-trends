@@ -31,7 +31,6 @@ cturate_query <- matrix(sapply(counties$area_code,
 #   bind_rows() %>% dplyr::rename(series_id = seriesID)
 # 
 # save(cturate_data, file = "raw/cturate_data.Rdata")
-# rm(cturate_data)
 
 load("raw/cturate_data.Rdata")
 
@@ -47,6 +46,8 @@ cturate <- mutate(cturate_data, stfips = substr(series_id, 6, 7),
                   )) %>% 
   dplyr::rename(urate = value) %>%  group_by(stcofips) %>% 
   mutate(max_urate = max(urate), is_max = ifelse(urate == max_urate, 1, 0))
+rm(cturate_data)
+
 
 annual <- cturate %>% filter(period == "M13") %>% dplyr::rename(ann_urate = urate) %>% 
   select(year, stcofips, ann_urate)
@@ -70,7 +71,7 @@ by_quarter <- adj_cturate %>% group_by(stcofips, quarter) %>%
 #===============================================================================#
 
 ctpop <- get_acs(geography = "county", variable = "B01001_001",
-                 geometry = TRUE) %>% 
+                 geometry = FALSE) %>% 
   dplyr::rename(stcofips = GEOID, pop = estimate) %>% 
   filter(!stcofips %in% c("72"))
 
@@ -141,15 +142,55 @@ ggplot(max_urate, aes(x = yq(quarter), y = max_urate/100, color = popcat,
            panel.ontop = TRUE,
            legend.position = c(0.9, 0.75)) 
 
+
 ggplot(max_urate) +
   geom_rect(aes(xmin = yq("2008-Q1"), xmax = yq("2009-Q3"),
                 ymin = 0, ymax = .325),
             fill = "gray85", color = "gray85", alpha = 0.75) +
-  geom_hex(aes(x = yq(quarter), y = max_urate/100, 
-                           fill = ..ndensity..)) +
+  geom_hex(aes(x = yq(quarter),
+               y = max_urate/100, 
+               fill = popcat)) +
+             # scale_fill_continuous(trans = "log10") +
+             lt_theme()
+
+ggplot(max_urate) +
+  geom_rect(aes(xmin = yq("2008-Q1"), xmax = yq("2009-Q3"),
+                ymin = 0, ymax = .325),
+            fill = "gray85", color = "gray85", alpha = 0.75) +
+  geom_hex(aes(x = yq(quarter),
+               y = max_urate/100, 
+               fill = ..count..,
+               weight = log10(pop))) +
+  # scale_fill_continuous(trans = "log10") +
   lt_theme()
 
-ggplot(max_urate, aes(x = yq(quarter), y = max_urate/100)) +
-  geom_tile(aes(fill = popcat)) 
-  
 
+adj_cturate %<>% left_join(select(ctpop, stcofips, pop), by = "stcofips")  
+
+recession_quarters <- unlist(Map(function(x, y) paste0(x, "-Q", y),
+                          c(rep(2008, 4), rep(2009, 3)),
+                          c(seq(1, 4), seq(1, 3))))
+
+qbreaks <- sapply(seq(2007, 2014), function(x) paste0(x, "-Q1"))
+
+plotdata <- adj_cturate %>% filter(!is.na(pop), between(year, 2007, 2013)) %>% 
+  mutate(quarter = as.factor(quarter),
+         recession = ifelse(quarter %in% recession_quarters, "1", "0")) 
+
+plotdata %>% 
+ggplot(aes(x = adj_urate/100,
+           y = fct_rev(quarter),
+           height = ..density..,
+           weight = pop,
+           fill = recession)) +
+  geom_density_ridges(stat = "density", color = "white") +
+  scale_x_continuous(limits = c(0, .20), labels = scales::percent) +
+  scale_fill_manual(values = c("1" = "gray40", "0" = lt_blue)) +
+  scale_y_discrete(breaks = qbreaks) +
+  labs(title = "Unemployment stayed high in many counties well after the end of the official recession",
+       x = "Unemployment rate (%)", y = "Quarter",
+       caption = "Source: Bureau of Labor Statistics \nNote: County unemployment rates were seasonally smoothed.") +
+  lt_theme(panel.grid.major.y = element_blank(),
+           legend.position = "none") +
+  annotate(geom = "text", x = 0.01, y = "2008-Q4", label = "Recession", family = "Cabin",
+           color = "gray40")

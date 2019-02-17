@@ -4,7 +4,7 @@ author: "Cecile Murray"
 date: "February 2019"
 output: 
   html_document:
-    toc: true
+    toc: TRUE
     toc_depth: 2
     code_folding: hide
     fig.width: 16
@@ -19,7 +19,7 @@ These visualizations aim to examine how the recession impacted these different g
 knitr::opts_chunk$set(echo = TRUE)
 
 libs <- c("tidyverse", "magrittr", "stringr", "readr", "data.table", "janitor",
-          "blscrapeR", "lubridate", "here", "ggrepel", "censusapi", "sf")
+          "blscrapeR", "lubridate", "here", "ggridges", "censusapi", "sf")
 lapply(libs, library, character.only=TRUE)
 suppressMessages(library(tidycensus))
 suppressMessages(library(sf))
@@ -220,15 +220,15 @@ ggplot(filter(stdata, period == "M10", year %in% c(2009)),
 
 The map below explores this geographic variation further: for each U.S. county, it shows the number of quarters between 2007 and 2017 where that county's unemployment rate was higher than the national rate. The relative strength of labor markets in the middle of the country is immediately evident. However, another trend that wasn't evident in the state-based figure above emerges: metropolitan areas had high unemployment rates for substantially shorter periods than the surrounding rural areas. Interestingly, this pattern seems to be strongest in the Southeast and weakest on the Pacific Coast (the tech boom notwithstanding).
 
-```{r cbsa_shp, message=FALSE, warning=FALSE, error=FALSE}
+```{r cbsa_shp, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 source("scripts/set_theme.R")
 
 # grab county population and geometry
-ctpop <- get_acs(geography = "county", variable = "B01001_001",
-                 geometry = TRUE, shift_geo = TRUE) %>% 
-  dplyr::rename(stcofips = GEOID, pop = estimate) %>% 
-  filter(!stcofips %in% c("72")) %>% select(-moe) 
-
+# ctpop <- get_acs(geography = "county", variable = "B01001_001",
+#                  geometry = TRUE, shift_geo = TRUE) %>% 
+#   dplyr::rename(stcofips = GEOID, pop = estimate) %>% 
+#   filter(!stcofips %in% c("72")) %>% select(-moe) 
+load("plot_data/ctpop.Rdata")
 
 # read in the CBSA shapefile, transform projection, grab metros
 cbsa <- suppressMessages(st_read("shp/cbsa_2017.geojson"))  %>%
@@ -247,9 +247,6 @@ kahului <- st_union(hi_cty[hi_cty$stcofips == "15009", ],
                     hi_cty[hi_cty$stcofips == "15005", ])
 honolulu <- hi_cty[hi_cty$stcofips == "15003",]
 
-all_ak <- get_acs(geography = "state", table = "B01001",
-                  geometry = TRUE, shift_geo = TRUE) %>%
-  filter(GEOID == "02")
 ```
 
 ```{r unemployment_map, message=FALSE, warning=FALSE, error=FALSE}
@@ -313,9 +310,17 @@ qt_above <- adj_cturate %>% group_by(stcofips, quarter) %>%
   summarize(qt_over_natl = sum(above_natl)) %>% ungroup() %>% 
   mutate(above_quintile = ntile(qt_over_natl, 5))
 
-natl_map <- ctpop %>% left_join(qt_above, by = "stcofips")  
-
-
+natl_map <- ctpop %>% inner_join(qt_above, by = "stcofips") %>% 
+  mutate(qt_cat = case_when(
+    qt_over_natl == 0 ~ 1,
+    qt_over_natl < 20 ~ 2,
+    qt_over_natl < 40 ~ 3,
+    qt_over_natl >= 40 ~ 4
+  ), pop_alpha = case_when(
+    pop < 100000 ~ "A",
+    pop < 1000000 ~ "B",
+    pop >= 1000000 ~ "C" 
+  ), color_cat = paste0(qt_cat, pop_alpha))
 
 # construct a bivariate color matrix:
 # I want it to run from lt_yellow to lt_blue (4 categories),
@@ -342,149 +347,33 @@ map_legend <- ggplot(color_matrix, aes(x = xaxis, y = yaxis)) +
 
 # create the map itself
 ggplot() +
-  geom_sf(data = natl_map, aes(fill = qt_over_natl, alpha = pop), lwd = 0) + 
+  geom_sf(data = natl_map, aes(fill = color_cat), lwd = 0) + 
   geom_sf(data = cbsa, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = anchorage, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = fairbanks, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = honolulu, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = kahului, color = "gray50", fill = NA, lwd = .20) +
-  scale_fill_gradient(low = lt_yellow, high = lt_blue, 
-                      name = "Quarters of high unemployment",
-                      guide = guide_legend(position = "horizontal")) +
-  scale_alpha_continuous(trans = "log10", range = c(0.25, 1),
-                         name = "", guide = FALSE) +
-  lt_theme(axis.text = element_blank(), legend.position = "top") +
+  scale_fill_manual(values = c("1A" = "#FFD81680", "1B" = "#FFD816BF",
+                               "1C" = "#FFD816FF", "2A" = "#BFA21080",
+                               "2B" = "#BFA210BF", "2C" = "#BFA210FF",
+                               "3A" = "#217FBE80", "3B" = "#217FBEBF",
+                               "3C" = "#217FBEFF", "4A" = "#3C657E80",
+                               "4B" = "#3C657EBF", "4C" = "#3C657EFF"), 
+                    name = "Quarters of high unemployment") +
+scale_alpha_continuous(trans = "log10", range = c(0.25, 1),
+                       name = "", guide = FALSE) +
+  lt_theme(axis.title = element_blank(), legend.position = "top") +
   coord_sf() +
   labs(title = "Metropolitan areas and the central U.S. have had shorter spells of
   high unemployment",
-       subtitle = "Quarters where county unemployment rates were higher than the nation's, 2007-2017",
-       caption = "Source: Bureau of Labor Statistics
-  Note: County unemployment rates were seasonally smoothed.") 
-
-
-```
-
-Of course, there is geographic variation at much smaller scales as well. The black-white unemployment gap can clearly be seen in this map of Cook County, IL, where each dot represents 500 people aged 20 or older. Not only do the predominately African-American neighborhoods on the city's South and West sides have fewer employed, they also have fewer people generally. 
-
-```{r dotmap_code, eval=FALSE, message=FALSE, warning=FALSE, error=FALSE}
-
-tract_emp <- get_acs(geography = "tract", table = "B23025",
-                     state = "17", county = "031", geometry = TRUE) %>% 
-  dplyr::rename(tract = GEOID) %>% select(-NAME, -moe) %>% 
-  mutate(emp_status = case_when(
-    variable == "B23025_001" ~ "total",
-    variable == "B23025_002" ~ "in_lf",
-    variable == "B23025_003" ~ "in_civlf",
-    variable == "B23025_004" ~ "emp",
-    variable == "B23025_005" ~ "unemp",
-    variable == "B23025_006" ~ "af",
-    variable == "B23025_007" ~ "nilf"
-  )) %>% select(-variable) %>% 
-  filter(emp_status %in% c("emp", "unemp", "nilf")) %>% 
-  st_as_sf()
-
-
-#===============================================================================#
-# MAKE DOTS
-#===============================================================================#
-
-# credit to Jens von Bergmann for this algo https://github.com/mountainMath/dotdensity/blob/master/R/dot-density.R
-random_round <- function(x) {
-  v=as.integer(x)
-  r=x-v
-  test=runif(length(r), 0.0, 1.0)
-  add=rep(as.integer(0),length(r))
-  add[r>test] <- as.integer(1)
-  value=v+add
-  ifelse(is.na(value) | value<0,0,value)
-  return(value)
-}
-
-# based on https://github.com/andybega/mireg-blogs/tree/master/us-2016-dot-density
-
-# Modified version of sf:::st_sample that combines points by sampled polyon
-st_sample_by_poly <- function(x, size) {
-  x <- st_geometry(x)
-  res <- lapply(1:length(x), function(i) {
-    y <- st_poly_sample_n(x[i], size[i]) %>%
-      st_combine()
-    if (st_is_empty(y)) {
-      y <- st_as_sfc("MULTIPOINT EMPTY")
-    }
-    y
-  })
-  do.call(c, res)
-}
-
-# Modified version of sf:::st_poly_sample that always returns correct size
-# when sampling a polygon
-st_poly_sample_n <- function(x, size) {
-  stopifnot(length(x)==1)
-  stopifnot(length(size)==1)
-  x <- st_geometry(x)
-  size <- round(size)
-  if (size==0) {
-    return(st_as_sfc("POINT EMPTY"))
-  } else {
-    pts <- st_sample(x, size)
-    max_iter <- 10
-    iter <- 1
-    while(length(pts) < size & !(iter > max_iter)) {
-      need <- size - length(pts)
-      pts <- c(pts, st_sample(x, need))
-      iter <- iter + 1
-    }
-    if (length(pts)==size) {
-      return(pts)
-    } else if (length(pts) > size) {
-      return(pts[1:size])
-    }
-  }
-}
-
-tract_emp2 <- tract_emp %>%
-  mutate(n_dots = random_round(estimate / 500)) %>%
-  mutate(dots = suppressMessages(st_sample_by_poly(., size = n_dots)))
-
-tract_emp3 <- tract_emp2 %>% st_drop_geometry() %>%
-  st_set_geometry(tract_emp2$dots) %>% st_as_sf()
-
-#===============================================================================#
-# GET SHAPEFILES
-#===============================================================================#
-
-# grab pre-processed Chicago OSM file
-setwd(ways_dir)
-chi_ways <- st_read("chicago_way.geojson")
-chi_ways %<>% st_transform(st_crs(tract_emp)$proj4string)
-chi_hwy <- filter(chi_ways, highway %in% c("motorway", "motorway_link"))
-setwd(here::here())
-
-# create cook county outline
-cook <- tract_emp %>% filter(emp_status == "emp") %>% st_union() 
-
-
-```
-
-```{r dotmap}
-load("plot_data/dotmap.Rdata")
-
-# TO DO: FIGURE OUT LEGEND
-
-# ggplot() +
-#   geom_sf(data = cook, fill = NA) +
-#   geom_sf(data = chi_hwy, color = "gray65") +
-#   geom_sf(data = tract_emp3, aes(color = emp_status),
-#           size = 0.25, alpha = 0.75) +
-#   scale_color_manual(values = c("emp" = lt_yellow, "unemp" = lt_blue,
-#                                "nilf" = "#90BFDE"),
-#                     name = "Represents 500 people",
-#                     labels = c("Employed", "Not in labor force", "Unemployed")) +
-#   labs(title = "Unemployment is spatially uneven at the sub-county level too",
-#        subtitle = "Labor force status for the population aged 20 and older in Cook County",
-#        caption = "Source: American Community Survey 2013-2017 tract-level estimates") +
-#   lt_theme(legend.position = c(0.95, 0.85), axis.text = element_blank(),
-#            panel.grid = element_blank())
+  subtitle = "Quarters where county unemployment rates were higher than the nation's, 2007-2017",
+  caption = "Source: Bureau of Labor Statistics
+  Note: County unemployment rates were seasonally smoothed.") +
+  annotate(geom = "text", 1250000, -2200000, label="Metropolitan\n areas",
+           family = "Cabin") +
+  annotate(geom = "linerange", x = 1280000, ymin = -2240000, ymax = -2220000, color = "gray50") +
+  lt_theme(legend.position = "bottom", axis.title = element_blank(),
+           axis.text = element_blank())
 
 
 ```
@@ -494,29 +383,71 @@ In addition, the "official" dates of the recession didn't align with what was ha
 
 
 ```{r county_unemp}
-load("plot_data/county_unemployment_scatter.Rdata")
-source("scripts/set_theme.R")
+load("raw/cturate_data.Rdata")
+
+# determine month of highest unemployments
+cturate <- mutate(cturate_data, stfips = substr(series_id, 6, 7),
+                  stcofips = substr(series_id, 6, 10),
+                  month = paste0(year, "-", period),
+                  quarter = case_when(
+                    period %in% c("M01", "M02", "M03") ~ paste0(year, "-", "Q1"),
+                    period %in% c("M04", "M05", "M06") ~ paste0(year, "-", "Q2"),
+                    period %in% c("M07", "M08", "M09") ~ paste0(year, "-", "Q3"),
+                    period %in% c("M10", "M11", "M12") ~ paste0(year, "-", "Q4")
+                  )) %>% 
+  dplyr::rename(urate = value) %>%  group_by(stcofips) %>% 
+  mutate(max_urate = max(urate), is_max = ifelse(urate == max_urate, 1, 0))
+rm(cturate_data)
 
 
-ggplot(max_urate, aes(x = yq(quarter), y = max_urate/100, alpha = pop)) +
-  geom_rect(aes(xmin = yq("2008-Q1"), xmax = yq("2009-Q3"),
-                ymin = 0, ymax = .325),
-            fill = "gray85", color = "gray85", alpha = 0.75) +
-  geom_point(color = lt_blue) +
-  scale_alpha_continuous(name = "Population (log),\n2017", trans = "log10",
-                         label = scales::number_format(big.mark = ",")) +
-  scale_y_continuous(labels = scales::percent) +
-  scale_x_date(breaks = "1 year", labels = scales::date_format(format = "%Y")) +
-  labs(title = "Many counties experienced their highest unemployment rates after 
-  the technical end of the Great Recession",
-       subtitle = "Maximum quarterly average county unemployment rate, seasonally smoothed, 2007-2017",
-       x = "Quarter", y = "Unemployment Rate",
-       caption = "Source: Bureau of Labor Statistics Local Area Unemployment Statistics
-       Note: Data were seasonally smoothed by subtracting the average monthly difference from annual average.") +
-  lt_theme(panel.grid.major.x = element_line(color = "gray75", linetype = "dotted"),
-           panel.grid.major.y = element_line(color = "gray75", linetype = "dotted"),
-           panel.ontop = TRUE,
-           legend.position = c(0.9, 0.75)) 
+annual <- cturate %>% filter(period == "M13") %>% dplyr::rename(ann_urate = urate) %>% 
+  select(year, stcofips, ann_urate)
+
+adj_factor <- cturate %>% filter(period != "M13", year < 2018) %>% 
+  left_join(annual, by = c("stcofips", "year")) %>% 
+  mutate(ann_delta = urate - ann_urate) %>% 
+  group_by(period) %>% summarize(month_adj = mean(ann_delta))
+
+adj_cturate <- cturate %>% filter(period != "M13", year < 2018) %>% 
+  left_join(adj_factor, by = "period") %>% 
+  mutate(adj_urate = urate - month_adj)
+
+by_quarter <- adj_cturate %>% group_by(stcofips, quarter) %>%
+  summarize(adj_urate = mean(adj_urate)) %>% ungroup() %>%
+  group_by(stcofips) %>% 
+  mutate(max_urate = max(adj_urate),
+         is_max = ifelse(adj_urate == max_urate, 1, 0))
+
+adj_cturate %<>% left_join(select(ctpop, stcofips, pop), by = "stcofips")  
+
+recession_quarters <- unlist(Map(function(x, y) paste0(x, "-Q", y),
+                          c(rep(2008, 4), rep(2009, 3)),
+                          c(seq(1, 4), seq(1, 3))))
+
+qbreaks <- sapply(seq(2007, 2014), function(x) paste0(x, "-Q1"))
+
+plotdata <- adj_cturate %>% filter(!is.na(pop), between(year, 2007, 2013)) %>% 
+  mutate(quarter = as.factor(quarter),
+         recession = ifelse(quarter %in% recession_quarters, "1", "0")) 
+
+plotdata %>% 
+ggplot(aes(x = adj_urate/100,
+           y = fct_rev(quarter),
+           height = ..density..,
+           weight = pop,
+           fill = recession)) +
+  geom_density_ridges(stat = "density", color = "white") +
+  scale_x_continuous(limits = c(0, .20), labels = scales::percent) +
+  scale_fill_manual(values = c("1" = "gray40", "0" = lt_blue)) +
+  scale_y_discrete(breaks = qbreaks) +
+  labs(title = "Unemployment stayed high in many counties well after the end of the official recession",
+       x = "Unemployment rate (%)", y = "Quarter",
+       caption = "Source: Bureau of Labor Statistics \nNote: County unemployment rates were seasonally smoothed.") +
+  lt_theme(panel.grid.major.y = element_blank(),
+           legend.position = "none") +
+  annotate(geom = "text", x = 0.01, y = "2008-Q4", label = "Recession", family = "Cabin",
+           color = "gray40")
+
 ```
 
 

@@ -163,6 +163,12 @@ ggplot() +
        Note: County unemployment rates were seasonally smoothed.") +
   annotate(geom = "text", 1250000, -1800000, label="Metropolitan areas") +
   # annotate(geom = "path", 1250000, -1810000, color = "gray50") +
-  lt_theme(legend.position = "bottom", axis.text = element_text(color = "white"))
+  lt_theme(legend.position = "bottom", axis.title = element_blank())
 
 
+# grab county population and geometry
+ctpop <- get_acs(geography = "county", variable = "B01001_001",
+                 geometry = TRUE, shift_geo = TRUE) %>% 
+  dplyr::rename(stcofips = GEOID, pop = estimate) %>% 
+  filter(!stcofips %in% c("72")) %>% select(-moe) 
+# save(ctpop, file = "plot_data/ctpop.Rdata")

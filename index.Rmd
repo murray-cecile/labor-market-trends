@@ -4,16 +4,12 @@ author: "Cecile Murray"
 date: "February 2019"
 output: 
   html_document:
-    toc: TRUE
-    toc_depth: 2
     code_folding: hide
-    fig.width: 15
-    fig.height: 11
 ---
 
 Ten years after the onset of the Great Recession, the national labor market is humming, with the official unemployment rate hovering around 4 percent and wage growth slowly accelerating. However, the rosy national figures mask important variation in labor market trends across industries, occupations, demographic groups, and geographic areas. This variation should matter to policymakers who are concerned about the extent to which different sectors and groups have actually recovered, and the degree to which economic growth is broadly shared.
 
-These visualizations aim to examine how the recession impacted these different groups as well as the extent to which the recovery is proceeding (or not) by looking at the pattern of job losses and job gains during and after the recession. I use data from a few different U.S. Bureau of Labor Statistics surveys, made easily accessible thanks to the excellent ```blscrapeR``` package.
+These visualizations aim to examine how the recession impacted these different groups as well as the extent to which the recovery is proceeding (or not) by looking at the pattern of job losses and job gains during and after the recession. I use data from a few different U.S. Bureau of Labor Statistics surveys, made easily accessible thanks to the excellent ```blscrapeR``` [package](https://github.com/keberwein/blscrapeR).
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -34,11 +30,11 @@ end08 <- ymd("20090630")
 source("scripts/set_theme.R")
 ```
 
-#### How did the recession affect different industries?
+### How did the recession affect different industries?
 
 One of the immediate causes of the recession was a crash in the U.S. housing and financial sectors due to mass defaults on sub-prime home mortgages that had been collateralized and sold as "safe" assets. The economic pain soon spread well beyond these two industries, but there was substantial variation in how different industries experience the recession and how long they took to recover. The chart below illustrates that the construction sector was hit much harder than most, while education and health services continued to grow jobs even as the nation overall shed them. Meanwhile, mining and logging followed an entirely different trajectory - likely in response to the shale boom. 
 
-```{r industry_data_prep, include=FALSE, echo=FALSE, fig.width=15}
+```{r industry_data_prep, include=FALSE, echo=FALSE}
 #===============================================================================#
 # SERIES ID DICTIONARIES
 #===============================================================================#
@@ -83,7 +79,7 @@ index_naics2 <- filter(naics2_data, periodName != "Annual")  %>%
 
 ```
 
-```{r}
+```{r, fig.width = 10, fig.height = 6}
 industry_colors <- c("Education and health services" = lt_green, 
                      "Mining and logging" = lt_orange,
                      "Construction" = lt_pink,
@@ -104,8 +100,12 @@ ggplot(index_naics2, aes(x = date, y = index_jobs * 100, group = industry_name,
   scale_x_date(date_breaks = "1 year", date_labels = "%Y",
                limits = c(min(index_naics2$date), max(index_naics2$date))) + 
   lt_theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = c(0.48, .1), legend.direction = "horizontal") +
-  labs(title = "Education and health services boomed while construction busted \n and mining and logging fluctuated",
+        legend.position = c(0.48, .1),
+        legend.direction = "horizontal",
+        legend.text = element_text(size = rel(1.05)),
+        axis.text = element_text(size =  rel(1.05)),
+        axis.title = element_text(size =  rel(1.1))) +
+  labs(title = "Education and health services boomed while construction busted and mining and logging fluctuated",
        subtitle = "Employment by industry, indexed to January 2007",
        x = "Year", y = "Indexed employment (Jan. 2007 = 100)",
        caption = "Source: Bureau of Labor Statistics Current Employment Statistics")
@@ -113,7 +113,7 @@ ggplot(index_naics2, aes(x = date, y = index_jobs * 100, group = industry_name,
 ```
 
 
-#### Which industries have grown the fastest since the recession?
+### Which industries have grown the fastest since the recession?
 
 It wasn't until April of 2014 that the economy returned to its pre-recession employment level. But I wanted to know whether the recession might have caused changes in the economy's composition; that is, what kind of jobs have we grown? The chart below shows that job growth was uneven across sectors. Worryingly, employment in sectors where average hourly earnings are below the figure for all private jobs grew faster than employment in higher-earnings sectors. For example, average earnings in the fast-growing leisure and hospitality sector were \$16 per hour, compared with close to \$30 per hour in higher-paying but still-recovering construction sector. In fact, the only higher-earning industry that saw a larger percentage increase than the economy as a whole was professional services. 
 
@@ -170,20 +170,23 @@ ggplot(filter(industry_growth, !is.na(industry_code)),
   facet_grid(cols = vars(earncat), scales = "free", space = "free") +
   geom_hline(aes(yintercept = nonfarm_growth), color = "gray60",
              linetype = "dashed") +
-  geom_text(data = ann_text, label = "Growth rate (%) across all industries",
+  geom_text(data = ann_text, label = "Growth rate across all industries",
             hjust = "left", nudge_x = -0.5, nudge_y = 0.005, family = "Cabin") +
   labs(title = "The fastest-growing industries have had lower average earnings",
        subtitle = "Growth rate (%) in employment by industry, 2007-2018",
-       x = "Industry", y = "Percent change in employment",
+       x = "Industry", y = "Growth rate (% change) in employment",
        caption = "Source: Bureau of Labor Statistics Current Employment Statistics
        Note: High-and low-earning categories based on comparing an industry's average hourly earnings to average hourly earnings for all private jobs.")+
-  lt_theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.ticks.x = element_blank(), legend.position = "none",
-        panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  lt_theme(axis.text.x = element_text(angle = 45, hjust = 1, size = rel(1.1)),
+           axis.title = element_text(size = rel(1.1)),
+           axis.ticks.x = element_blank(), 
+           legend.position = "none",
+           panel.grid.major = element_blank(),
+           panel.grid.minor = element_blank())
 
 ```
 
-#### How were different parts of the country affected?
+### How were different parts of the country affected?
 
 The chart below shows that the recession did not treat all states equally. Even when the national unemployment rate peaked at 10% in October 2009, the Dakotas and Nebraska experienced unemployment rates between 3 and 5 percent, likely due to the shale boom. Meanwhile, states like Michigan, Nevada, Alabama, and California - all of which were hit hard by the foreclosure crisis - saw their unemployment rates hang near 12%. 
 
@@ -249,8 +252,7 @@ honolulu <- hi_cty[hi_cty$stcofips == "15003",]
 
 ```
 
-```{r unemployment_map, message=FALSE, warning=FALSE, error=FALSE, fig.width = 15, fig.height=11}
-
+```{r unemployment_map, message=FALSE, warning=FALSE, error=FALSE, fig.width = 9, fig.height=9}
 
 cps_codes <- fread("https://download.bls.gov/pub/time.series/ln/ln.series")
 
@@ -327,8 +329,8 @@ natl_map <- ctpop %>% inner_join(qt_above, by = "stcofips") %>%
 # and from low to high intensity (3 categories)
 color_matrix <- data.frame("colors" = c("#FFD81680", "#FFD816BF", "#FFD816FF",
                                         "#BFA21080", "#BFA210BF", "#BFA210FF",
-                                        "#3C657E80", "#3C657EBF", "#3C657EFF",
-                                        "#217FBE80", "#217FBEBF", "#217FBEFF"),
+                                        "#217FBE80", "#217FBEBF", "#217FBEFF",
+                                        "#3C657E80", "#3C657EBF", "#3C657EFF"),
                            "xaxis" = rep(c("A", "B", "C"), 4),
                            "yaxis" = matrix(sapply(seq(1, 4), function(x) rep(x, 3)), ncol = 1)) %>% 
   mutate(cat = paste0(yaxis, xaxis))
@@ -341,16 +343,20 @@ map_legend <- ggplot(color_matrix, aes(x = xaxis, y = yaxis)) +
   labs(title = "Quarters of high unemployment by population", 
        x = "Population", y = "Quarters") +
   lt_theme(panel.grid.major = element_blank(),
-           axis.text = element_text(size = rel(1.1)),
            plot.title = element_text(face = "bold"))
 
 
-metro <- data.frame("x" = 1, "y" = 1) %>% 
+metro <- data.frame("x" = 0.5, "y" = 1.5) %>% 
   ggplot(aes(x, y)) +
-  geom_tile(fill = NA, color = "gray50", lwd = 1.5) +
+  geom_tile(fill = NA, color = "gray50", lwd = 1) +
+  scale_x_continuous(limits = c(0, 2)) +
+  scale_y_continuous(limits = c(0, 2)) +
   labs(title = "Metropolitan areas") +
-  lt_theme(axis.text = element_blank(), panel.grid.major = element_blank(),
-           axis.title = element_blank())
+  lt_theme(axis.text = element_blank(), 
+           panel.grid.major = element_blank(),
+           axis.title = element_blank(), 
+           plot.title = element_text(size = rel(1.1)))
+
 
 # create the map itself
 mainmap <- ggplot() +
@@ -367,8 +373,7 @@ mainmap <- ggplot() +
                                "3C" = "#217FBEFF", "4A" = "#3C657E80",
                                "4B" = "#3C657EBF", "4C" = "#3C657EFF")) +
   coord_sf() +
-  labs(title = "Metropolitan areas and the central U.S. have had shorter spells of
-       high unemployment",
+  labs(title = "The Great Plains states and most metropolitan cores have had shorter spells of high unemployment",
        subtitle = "Quarters where county unemployment rates were higher than the nation's, 2007-2017",
        caption = "Source: Bureau of Labor Statistics
        Note: County unemployment rates were seasonally smoothed.") +
@@ -377,11 +382,15 @@ mainmap <- ggplot() +
            axis.text = element_blank())
 
 grid.arrange(mainmap, metro, map_legend,
-             layout_matrix = rbind(c(1, 1, 1, 1, 1),
-                                   c(1, 1, 1, 1, 1),
-                                   c(1, 1, 1, 1, 1),
-                                   c(1, 1, 1, 1, 1),
-                                   c(2, 3, 3, 3, 3)))
+             layout_matrix = rbind(c(1, 1, 1, 1, 1, 1),
+                                   c(1, 1, 1, 1, 1, 1),
+                                   c(1, 1, 1, 1, 1, 1),
+                                   c(1, 1, 1, 1, 1, 1),
+                                   c(1, 1, 1, 1, 1, 1),
+                                   c(1, 1, 1, 1, 1, 1),
+                                   c(1, 1, 1, 1, 1, 1),
+                                   c(3, 3, 3, 2, NA, NA),
+                                   c(3, 3, 3, NA, NA, NA)))
 
 
 ```
@@ -432,7 +441,9 @@ recession_quarters <- unlist(Map(function(x, y) paste0(x, "-Q", y),
                           c(rep(2008, 4), rep(2009, 3)),
                           c(seq(1, 4), seq(1, 3))))
 
-qbreaks <- sapply(seq(2007, 2014), function(x) paste0(x, "-Q1"))
+qbreaks <- unlist(Map(function(x, y) paste0(x, "-Q", y),
+                          sapply(seq(2007, 2013), function(x) rep(x, 2)),
+                          c(1, 3)))
 
 plotdata <- adj_cturate %>% filter(!is.na(pop), between(year, 2007, 2013)) %>% 
   mutate(quarter = as.factor(quarter),
@@ -448,7 +459,7 @@ ggplot(aes(x = adj_urate/100,
   scale_x_continuous(limits = c(0, .20), labels = scales::percent) +
   scale_fill_manual(values = c("1" = lt_pink, "0" = lt_blue)) +
   scale_y_discrete(breaks = qbreaks) +
-  labs(title = "Unemployment stayed high in many counties well after the end \nof the official recession",
+  labs(title = "Unemployment stayed high in many counties well after the end of the official recession",
        subtitle = "Population-weighted distribution of county unemployment rates",
        x = "Unemployment rate (%)", y = "Quarter",
        caption = "Source: Bureau of Labor Statistics \nNote: County unemployment rates were seasonally smoothed.") +
@@ -456,16 +467,18 @@ ggplot(aes(x = adj_urate/100,
            panel.grid.minor.x = element_line(color = "gray75", size = rel(0.65),
                                   linetype = "dotted"),
            legend.position = "none") +
-  annotate(geom = "text", x = 0.01, y = "2008-Q4", label = "Recession", family = "Cabin")
+  annotate(geom = "text", x = 0.00, y = "2008-Q4", label = "Recession", family = "Cabin") +
+  annotate(geom = "errorbar", x = 0.01, ymin = "2008-Q1", ymax = "2009-Q3",
+           color = "gray75", width = 0.01/10)
 
 ```
 
 
-#### How did the recession affect longer-term labor market disparities?
+### How did the recession affect longer-term labor market disparities?
 
 Economists sometimes categorize labor market trends as either cyclical or structural to denote whether fluctuations are primarily driven by the economic cycle or whether they reflect deeper changes in the labor market. Unfortunately, racial disparities in unemployment are both cyclical and structural, as the chart below illustrates. The unemployment rate among black Americans has been higher than the unemployment rate among white Americans for as long as the Current Population Survey has measured it (the white unemployment rate is available back to 1954, but the black unemployment rate is only available after 1971). That gap only widens during recessions. However, the current disparity is the smallest it has ever been.
 
-```{r}
+```{r, fig.width = 7, fig.height=5}
 load("plot_data/black_white_unemployment_gap.Rdata")
 source("scripts/set_theme.R")
 
@@ -495,7 +508,7 @@ ggplot(raceth_unemp_yr, aes(x = year)) +
 
 
 
-#### The educational profile of the unemployed is slowly changing
+### The educational profile of the unemployed is slowly changing
 
 A few decades ago, a high school diploma - let alone a college degree - used to be sufficient education to guarantee reasonably steady, sufficiently well-paid employment. Over time, however, the workforce has become more educated, and as a result, the unemployed population contains more post-secondary degree-holders even when the labor market is strong. The chart below shows educational attainment among the unemployed at three such moments of relatively low unemployment. 
 
@@ -575,11 +588,11 @@ ggplot(grids, aes(x = x, y = y, fill = reorder(z, order))) +
 ```
 
 
-#### The labor market probably has more slack than first meets the eye
+### The labor market probably has more slack than first meets the eye
 
 In order to be considered officially unemployed, an individual must be out of work, available to work, and have actively looked for work within the last month. However, this measure understates the total slack in the labor market because it does not account for "marginally attached" workers, who don't have work and want it but have only searched for a job within the last year, or "discouraged" workers, who want a job but have given up searching. In addition, the official unemployment number does not include people who are working part-time but would prefer full-time work. The chart below compares the official measure to these alternative measures over time, showing that the officially unemployed only represent about half of a larger group of individuals who want a full-time job and don't have one.  
 
-```{r alternative_measures, fig.width=10, fig.height=7, message='hide'}
+```{r alternative_measures, fig.width=9, fig.height=6, message='hide'}
 series_list <- c("LNU03000000", "LNU05026645", "LNU05026642", "LNU02032194")
 
 # construct query
@@ -660,8 +673,25 @@ ggplot(underutilized, aes(x = month_date, y = adj_value / 1000, group = names)) 
        x = "Year", y = "Workers (millions)",
        caption = "Source: Bureau of Labor Statistics Current Population Survey") +
   lt_theme(legend.position = c(0.23, 0.85),
-           axis.text.x = element_text(angle = 45))
+           axis.text.x = element_text(angle = 45),
+           legend.text = element_text(size = rel(1.1)),
+           panel.grid.minor = element_line(color = "gray85", size = rel(0.75),
+                                  linetype = "dotted"),
+           panel.grid.major = element_line(color = "white", size = rel(0.75),
+                                  linetype = "dotted"),
+           panel.ontop = TRUE) 
 ```
+
+### References
+
+* Data came from a variety of Bureau of Labor Statistics and Census Bureau surveys, including the Current Population Survey, the American Community Survey, Current Employment Statistics, and Local Area Unemployment Statistics.
+
+* I used [```blscrapeR```](https://github.com/keberwein/blscrapeR) to download the BLS data and the ```tidycensus``` package to download American Community Survey data.
+
+* Shapefiles come from the Census Bureau's TIGER program.
+
+* Jonathan Tan's excellent chart on [solar panel cost](https://jtanwk.github.io/us-solar/#how_have_solar_panel_costs_changed) in the U.S. inspired my county unemployment distribution chart. 
+
 
 The theme for this project is defined below:
 
@@ -681,21 +711,6 @@ lt_theme <- function (...) {
   legend.background = element_blank(),
   legend.key = element_blank()) +
   theme(...)
-}
-
-lt_map_theme <- function (...) {
-  theme(text = element_text(family = "Cabin Medium"),
-        plot.title = element_text(size = rel(1.25), face = "bold"),
-        plot.subtitle = element_text(family = "Cabin"),
-        plot.caption = element_text(family = "Cabin", face = "italic"),
-        panel.background = element_rect(fill = NA), 
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        axis.ticks = element_blank(),
-        axis.text = element_blank(),
-        legend.background = element_blank(),
-        legend.key = element_blank()) +
-    theme(...)
   
 }
 ```

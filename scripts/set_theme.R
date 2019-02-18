@@ -57,12 +57,5 @@ lt_map_theme <- function (...) {
 }
 
 
-# ggplot(countypop, aes(x = pop, y = as.numeric(stcofips))) +
-#   geom_point() +
-#   labs(title = "This graph says something important",
-#        subtitle = "Description of the data",
-#        x = "X Variable", y = "Y Variable",
-#        caption = "Source: authoritative") +
-#   lt_theme()
 
 

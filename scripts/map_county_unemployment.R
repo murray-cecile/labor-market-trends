@@ -141,34 +141,76 @@ qt_above %>% left_join(cbsa_xwalk2, by = "stcofips") %>%
   ggplot(aes(x = in_metro, y = qt_over_natl)) +
   geom_violin()
 
-  
-ggplot() +
+#===============================================================================#
+# THE ACTUAL PLOT
+#===============================================================================#
+
+
+library(gridExtra)
+
+# construct a bivariate color matrix:
+# I want it to run from lt_yellow to lt_blue (4 categories),
+# and from low to high intensity (3 categories)
+color_matrix <- data.frame("colors" = c("#FFD81680", "#FFD816BF", "#FFD816FF",
+                                        "#BFA21080", "#BFA210BF", "#BFA210FF",
+                                        "#3C657E80", "#3C657EBF", "#3C657EFF",
+                                        "#217FBE80", "#217FBEBF", "#217FBEFF"),
+                           "xaxis" = rep(c("A", "B", "C"), 4),
+                           "yaxis" = matrix(sapply(seq(1, 4), function(x) rep(x, 3)), ncol = 1)) %>% 
+  mutate(cat = paste0(yaxis, xaxis))
+
+
+map_legend <- ggplot(color_matrix, aes(x = xaxis, y = yaxis)) +
+  geom_tile(fill = color_matrix$colors, color = "gray50") +
+  scale_x_discrete(labels = c("Under 100,000", "100,000 to 1,000,000", "1M or more")) +
+  scale_y_continuous(labels = c("0", "1-19", "20-39", "40+"),
+                     breaks = seq(1, 4)) +
+  labs(title = "Quarters of high unemployment by population", 
+       x = "Population", y = "Quarters") +
+  lt_theme(panel.grid.major = element_blank(),
+           axis.text = element_text(size = rel(1.1)),
+           plot.title = element_text(face = "bold"))
+
+
+metro <- data.frame("x" = 1, "y" = 1) %>% 
+  ggplot(aes(x, y)) +
+  geom_tile(fill = NA, color = "gray50", lwd = 1.5) +
+  labs(title = "Metropolitan areas") +
+  lt_theme(axis.text = element_blank(), panel.grid.major = element_blank(),
+           axis.title = element_blank())
+
+# create the map itself
+mainmap <- ggplot() +
   geom_sf(data = natl_map, aes(fill = color_cat), lwd = 0) + 
   geom_sf(data = cbsa, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = anchorage, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = fairbanks, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = honolulu, color = "gray50", fill = NA, lwd = .20) +
   geom_sf(data = kahului, color = "gray50", fill = NA, lwd = .20) +
-  scale_color_manual(name = "Metro areas", 
-                     guide = "legend") +
-  scale_fill_manual(values = c("1A" = "#FFD81680", "1B" = "#FFD816BF", "1C" = "#FFD816FF",
-                               "2A" = "#BFA21080", "2B" = "#BFA210BF", "2C" = "#BFA210FF",
-                               "3A" = "#217FBE80", "3B" = "#217FBEBF", "3C" = "#217FBEFF",
-                               "4A" = "#3C657E80", "4B" = "#3C657EBF", "4C" = "#3C657EFF"), 
-                    name = "Quarters of high unemployment") +
+  scale_fill_manual(values = c("1A" = "#FFD81680", "1B" = "#FFD816BF",
+                               "1C" = "#FFD816FF", "2A" = "#BFA21080",
+                               "2B" = "#BFA210BF", "2C" = "#BFA210FF",
+                               "3A" = "#217FBE80", "3B" = "#217FBEBF",
+                               "3C" = "#217FBEFF", "4A" = "#3C657E80",
+                               "4B" = "#3C657EBF", "4C" = "#3C657EFF")) +
   coord_sf() +
-  labs(title = "The central U.S. and most metropolitan areas have had shorter spells of high unemployment",
-       subtitle = "Quarters where the unemployment rate was higher than the nation's by county, 2007-2017",
+  labs(title = "Metropolitan areas and the central U.S. have had shorter spells of
+       high unemployment",
+       subtitle = "Quarters where county unemployment rates were higher than the nation's, 2007-2017",
        caption = "Source: Bureau of Labor Statistics
        Note: County unemployment rates were seasonally smoothed.") +
-  annotate(geom = "text", 1250000, -1800000, label="Metropolitan areas") +
-  # annotate(geom = "path", 1250000, -1810000, color = "gray50") +
-  lt_theme(legend.position = "bottom", axis.title = element_blank())
+  # annotate(geom = "text", 1250000, -2200000, label="Metropolitan\n areas",
+  #          family = "Cabin") +
+  # annotate(geom = "linerange", x = 1280000, ymin = -2240000, ymax = -2220000, color = "gray50") +
+  lt_theme(legend.position = "none", legend.direction = "horizontal",
+           legend.text = element_blank(),
+           axis.title = element_blank(),
+           axis.text = element_blank())
+# mainmap
 
-
-# grab county population and geometry
-ctpop <- get_acs(geography = "county", variable = "B01001_001",
-                 geometry = TRUE, shift_geo = TRUE) %>% 
-  dplyr::rename(stcofips = GEOID, pop = estimate) %>% 
-  filter(!stcofips %in% c("72")) %>% select(-moe) 
-# save(ctpop, file = "plot_data/ctpop.Rdata")
+test <- grid.arrange(mainmap, metro, map_legend,
+             layout_matrix = rbind(c(1, 1, 1, 1, 1),
+                                   c(1, 1, 1, 1, 1),
+                                   c(1, 1, 1, 1, 1),
+                                   c(1, 1, 1, 1, 1),
+                                   c(2, 3, 3, 3, 3)))

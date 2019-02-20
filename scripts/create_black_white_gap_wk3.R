@@ -89,11 +89,4 @@ ggplot(raceth_unemp_yr, aes(x = year)) +
            size = 1.25) +
   annotate(geom = "text", x = 2013, y = 0.1875, label = "Black-white gap", size = 3.5)
 
-#===============================================================================#
-# SELECTED DATA FOR REVERSE SCATTER PLOT
-#===============================================================================#
-# 
-# bw <- raceth_unemp_yr %>% select(year, black, white, unemp_all) %>% 
-#   filter(year > 1998)
-# 
-# write_csv(bw, "temp/black_white_unemployment.csv")
+

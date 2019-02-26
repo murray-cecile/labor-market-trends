@@ -6,7 +6,7 @@ library(here)
 source("scripts/create_black_white_gap_wk3.R")
 
 bw <- raceth_unemp_yr %>% select(year, black, white, unemp_all) %>%
-  filter(year > 1998)
+  filter(year > 1999)
 
 library(jsonlite)
 # jsonlite::write_json(bw, "temp/black_white_unemployment.json")
